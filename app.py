@@ -8,12 +8,6 @@ Lecture Notes Generator — Streamlit app
 >>> PASTE YOUR API KEYS BELOW <<<
 """
 
-# Models (free-tier friendly defaults)
-WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
-GEMINI_MODEL  = "gemini-2.0-flash"         # or "gemini-1.5-flash" / "gemini-1.5-pro"
-LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
-# ============================================================
-
 import os
 import json
 import tempfile
@@ -22,6 +16,18 @@ from pathlib import Path
 import streamlit as st
 from groq import Groq
 import google.genai as genai
+
+# ============================================================
+# 🔑 PUT YOUR API KEYS HERE
+# ============================================================
+GROQ_API_KEY   = st.secrets["GROQ_API_KEY"]
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+
+# Models (free-tier friendly defaults)
+WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
+GEMINI_MODEL  = "gemini-2.0-flash"         # or "gemini-1.5-flash" / "gemini-1.5-pro"
+LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
+# ============================================================
 
 # ---------- Page config & theme ----------
 st.set_page_config(
