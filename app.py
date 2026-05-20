@@ -11,11 +11,11 @@ Lecture Notes Generator — Streamlit app
 # ============================================================
 # 🔑 PUT YOUR API KEYS HERE
 # ============================================================
-GROQ_API_KEY   = "paste-your-groq-api-key-here"
-GEMINI_API_KEY = "paste-your-gemini-api-key-here"
+GROQ_API_KEY   = "groq-api"
+GEMINI_API_KEY = "gemini-api"
 
 # Models (free-tier friendly defaults)
-WHISPER_MODEL = "whisper-large-v3-turbo"   # or "whisper-large-v3"
+WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL  = "gemini-2.0-flash"         # or "gemini-1.5-flash" / "gemini-1.5-pro"
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 # ============================================================
@@ -105,7 +105,7 @@ uploaded = st.file_uploader(
 
 col_a, col_b = st.columns([1, 1])
 with col_a:
-    run = st.button("🚀 Generate Notes", use_container_width=True, type="primary",
+    run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
 with col_b:
     st.caption("Groq free tier limits file size to ~25 MB. "
