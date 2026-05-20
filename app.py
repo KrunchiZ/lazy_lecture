@@ -8,12 +8,6 @@ Lecture Notes Generator — Streamlit app
 >>> PASTE YOUR API KEYS BELOW <<<
 """
 
-# ============================================================
-# 🔑 PUT YOUR API KEYS HERE
-# ============================================================
-GROQ_API_KEY   = "groq-api"
-GEMINI_API_KEY = "gemini-api"
-
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL  = "gemini-2.0-flash"         # or "gemini-1.5-flash" / "gemini-1.5-pro"
