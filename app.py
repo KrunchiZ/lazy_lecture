@@ -27,7 +27,7 @@ from pathlib import Path
 
 import streamlit as st
 from groq import Groq
-import google.generativeai as genai
+import google.genai as genai
 
 # ---------- Page config & theme ----------
 st.set_page_config(
