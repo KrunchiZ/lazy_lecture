@@ -4,35 +4,15 @@ Turn a lecture recording into clean, structured study notes.
 
 - **Speech-to-text:** Groq Whisper (free tier)
 - **Summarization:** Google Gemini (free tier)
-- **UI:** Navy-blue monochrome theme
 - **Output:** Title, TL;DR, key bullets, sectioned notes with visual aids (Mermaid diagrams / tables), key terms, and self-check questions. Downloadable as Markdown.
 
-## 1. Install
-
-```bash
-python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## 2. Get free API keys
-
-- **Groq:** https://console.groq.com/keys
-- **Gemini:** https://aistudio.google.com/app/apikey
-
-Paste them in the sidebar at runtime, or export them:
-
-```bash
-export GROQ_API_KEY=...
-export GEMINI_API_KEY=...
-```
-
-## 3. Run locally
+## 1. Run locally
 
 ```bash
 streamlit run app.py
 ```
 
-## 4. Deploy on Streamlit Community Cloud
+## 2. Deploy on Streamlit Community Cloud
 
 1. Push `app.py` and `requirements.txt` to a GitHub repo.
 2. Go to https://share.streamlit.io, connect the repo, choose `app.py`.
