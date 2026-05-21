@@ -15,64 +15,72 @@ import traceback
 from pathlib import Path
 
 import streamlit as st
-from groq import Groq
-import google.genai as genai
-
-# ============================================================
-# 🔑 PUT YOUR API KEYS HERE
-# ============================================================
-GROQ_API_KEY   = st.secrets["GROQ_API_KEY"]
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-
-# Models (free-tier friendly defaults)
-WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
-GEMINI_MODEL_CANDIDATES = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-]
-LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
-# ============================================================
-
-# ---------- Page config & theme ----------
-st.set_page_config(
-    page_title="Lecture Notes Generator",
-    page_icon="📖",
-    layout="wide",
-)
-
+NAVY_CSS = """
 NAVY_CSS = """
 <style>
+/* Color system with accessible contrasts for light and dark */
 :root {
-    --blue-900:#052c5b;
-    --blue-800:#0a3b73;
-    --blue-700:#0e4f8f;
-    --blue-600:#1666b1;
-    --blue-500:#2a84c9;
-    --blue-300:#8fbde8;
-    --blue-100:#eef7ff;
+    /* Light theme */
+    --bg: #eef7ff;            /* light background */
+    --text: #052c5b;          /* main text (dark navy) */
+    --muted: #0a3b73;         /* headings */
+    --primary: #0e4f8f;       /* primary UI color */
+    --primary-600: #1666b1;
+    --accent: #2a84c9;
+    --card-bg: #ffffff;
 }
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark theme palette that keeps high contrast */
+        --bg: #021425;         /* deep navy background */
+        --text: #eaf6ff;       /* very light text */
+        --muted: #9fc9ff;      /* headings */
+        --primary: #2a84c9;    /* brighter primary on dark */
+        --primary-600: #1b6fb0;
+        --accent: #6fb6ff;
+        --card-bg: #052034;    /* slightly lighter card surface */
+    }
+}
+
 html, body, [class*="css"], .stApp {
-    background: var(--blue-100);
-    color: var(--blue-900);
-    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 .stApp .block-container, .stApp .main {
     background: transparent !important;
 }
 
-h1, h2, h3, h4 { color: var(--blue-800) !important; letter-spacing:-0.01em; }
+h1, h2, h3, h4 { color: var(--muted) !important; letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button, button {
-    background: var(--blue-700) !important; color: var(--blue-100) !important;
+    background: var(--primary) !important; color: #ffffff !important;
     border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
     box-shadow: none !important; background-image: none !important;
     -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
-.stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--blue-600) !important; }
-.stProgress > div > div > div > div { background-color: var(--blue-600); }
+.stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--primary-600) !important; }
+.stProgress > div > div > div > div { background-color: var(--primary-600); }
 div[data-testid="stFileUploader"] section {
-    background: white; border:1px dashed var(--blue-500); border-radius:12px;
+    background: var(--card-bg); border:1px dashed var(--accent); border-radius:12px;
 }
+.notes-card {
+    background:var(--card-bg); border-left:5px solid var(--primary);
+    padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.kpi {
+    background:var(--primary); color:white; padding:1rem; border-radius:10px;
+    text-align:center;
+}
+.kpi .v { font-size:1.6rem; font-weight:700; }
+.kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
+hr { border-color: rgba(0,0,0,0.06); }
+/* Make all corners sharp */
+* { border-radius: 0 !important; }
+</style>
+"""
+st.markdown(NAVY_CSS, unsafe_allow_html=True)
 .notes-card {
     background:white; border-left:5px solid var(--blue-700);
     padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
