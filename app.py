@@ -52,12 +52,17 @@ html, body, [class*="css"], .stApp {
     color: var(--blue-900);
     font-family: 'Inter', system-ui, sans-serif;
 }
-h1, h2, h3, h4 { color: var(--blue-800); letter-spacing:-0.01em; }
-.stButton>button, .stDownloadButton>button {
-    background: var(--blue-700); color: white; border:0; border-radius:8px;
-    padding: 0.55rem 1.1rem; font-weight:600;
+.stApp .block-container, .stApp .main {
+    background: transparent !important;
 }
-.stButton>button:hover, .stDownloadButton>button:hover { background: var(--blue-600); }
+
+h1, h2, h3, h4 { color: var(--blue-800) !important; letter-spacing:-0.01em; }
+.stButton>button, .stDownloadButton>button, button {
+    background: var(--blue-700) !important; color: var(--blue-100) !important;
+    border:0 !important; border-radius:8px !important;
+    padding: 0.55rem 1.1rem !important; font-weight:600 !important;
+}
+.stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--blue-600) !important; }
 .stProgress > div > div > div > div { background-color: var(--blue-600); }
 div[data-testid="stFileUploader"] section {
     background: white; border:1px dashed var(--blue-500); border-radius:12px;
@@ -77,6 +82,31 @@ hr { border-color: var(--blue-300); }
 </style>
 """
 st.markdown(NAVY_CSS, unsafe_allow_html=True)
+
+EXTRA_CSS = """
+<style>
+/* Top banner / header */
+header, .stApp header, div[role='banner'], div[role='toolbar'], nav {
+    background: var(--blue-100) !important;
+    color: var(--blue-900) !important;
+}
+/* Buttons (primary and download) */
+.stButton>button, .stDownloadButton>button, button {
+    background: var(--blue-700) !important;
+    color: #ffffff !important;
+    border: 0 !important;
+}
+/* Ensure SVG icons in buttons are visible */
+button svg, .stButton>button svg, .stDownloadButton>button svg {
+    fill: #ffffff !important;
+}
+/* Sidebar / menu */
+.stSidebar { background: var(--blue-100) !important; color: var(--blue-900) !important; }
+/* Make links and emphasized text use blue tones */
+a, a:visited { color: var(--blue-700) !important; }
+</style>
+"""
+st.markdown(EXTRA_CSS, unsafe_allow_html=True)
 
 # ---------- Header ----------
 st.markdown("# Lecture Notes Generator")
