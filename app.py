@@ -115,6 +115,21 @@ button svg, .stButton>button svg, .stDownloadButton>button svg {
 .center-caption { text-align: center; color: var(--blue-900); display:block; width:100%; margin-top:0.25rem; }
 /* Make links and emphasized text use blue tones */
 a, a:visited { color: var(--blue-700) !important; }
+  /* Streamlit expander header styling */
+  [data-testid="stExpander"] details summary {
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
+      border: 1px solid var(--blue-300) !important;
+  }
+  [data-testid="stExpander"] details[open] summary {
+      background: var(--blue-700) !important;
+      color: #ffffff !important;
+      border-color: var(--blue-700) !important;
+  }
+  [data-testid="stExpander"] details summary:hover {
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
+  }
 /* Normalize header / top-bar action buttons to consistent size */
 header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
 .css-1v3fvcr button, .css-1d391kg button {
