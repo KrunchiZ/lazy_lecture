@@ -3,7 +3,7 @@ Lecture Notes Generator — Streamlit app
 - Upload a lecture video/audio
 - Transcribe with Groq (Whisper, free-tier)
 - Summarize into structured notes with Google Gemini (free-tier)
-- Navy-blue monochrome UI
+- Monochromatic blue UI
 
 >>> PASTE YOUR API KEYS BELOW <<<
 """
@@ -39,41 +39,41 @@ st.set_page_config(
 NAVY_CSS = """
 <style>
 :root {
-    --navy-900:#0a1a2f;
-    --navy-800:#0f2747;
-    --navy-700:#143a6b;
-    --navy-600:#1d4f8a;
-    --navy-500:#2f6fb5;
-    --navy-300:#9fbada;
-    --navy-100:#e6edf6;
+    --blue-900:#052c5b;
+    --blue-800:#0a3b73;
+    --blue-700:#0e4f8f;
+    --blue-600:#1666b1;
+    --blue-500:#2a84c9;
+    --blue-300:#8fbde8;
+    --blue-100:#eef7ff;
 }
 html, body, [class*="css"], .stApp {
-    background: var(--navy-100);
-    color: var(--navy-900);
+    background: var(--blue-100);
+    color: var(--blue-900);
     font-family: 'Inter', system-ui, sans-serif;
 }
-h1, h2, h3, h4 { color: var(--navy-800); letter-spacing:-0.01em; }
+h1, h2, h3, h4 { color: var(--blue-800); letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button {
-    background: var(--navy-700); color: white; border:0; border-radius:8px;
+    background: var(--blue-700); color: white; border:0; border-radius:8px;
     padding: 0.55rem 1.1rem; font-weight:600;
 }
-.stButton>button:hover, .stDownloadButton>button:hover { background: var(--navy-600); }
-.stProgress > div > div > div > div { background-color: var(--navy-600); }
+.stButton>button:hover, .stDownloadButton>button:hover { background: var(--blue-600); }
+.stProgress > div > div > div > div { background-color: var(--blue-600); }
 div[data-testid="stFileUploader"] section {
-    background: white; border:1px dashed var(--navy-500); border-radius:12px;
+    background: white; border:1px dashed var(--blue-500); border-radius:12px;
 }
 .notes-card {
-    background:white; border-left:5px solid var(--navy-700);
+    background:white; border-left:5px solid var(--blue-700);
     padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
-    box-shadow: 0 1px 3px rgba(10,26,47,0.08);
+    box-shadow: 0 1px 3px rgba(10,54,91,0.06);
 }
 .kpi {
-    background:var(--navy-800); color:white; padding:1rem; border-radius:10px;
+    background:var(--blue-700); color:white; padding:1rem; border-radius:10px;
     text-align:center;
 }
 .kpi .v { font-size:1.6rem; font-weight:700; }
-.kpi .l { font-size:0.8rem; opacity:0.8; text-transform:uppercase; letter-spacing:0.08em;}
-hr { border-color: var(--navy-300); }
+.kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
+hr { border-color: var(--blue-300); }
 </style>
 """
 st.markdown(NAVY_CSS, unsafe_allow_html=True)
@@ -189,9 +189,9 @@ def render_mermaid(code: str):
     <div class="mermaid">{code}</div>
     <script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-      mermaid.initialize({{ startOnLoad: true, theme: 'base',
-        themeVariables: {{ primaryColor:'#143a6b', primaryTextColor:'#ffffff',
-                           lineColor:'#1d4f8a', fontFamily:'Inter' }}}});
+            mermaid.initialize({{ startOnLoad: true, theme: 'base',
+                themeVariables: {{ primaryColor:'#0e4f8f', primaryTextColor:'#ffffff',
+                                                     lineColor:'#1666b1', fontFamily:'Inter' }}}});
       mermaid.run();
     </script>
     """
