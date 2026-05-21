@@ -40,33 +40,28 @@ LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 NAVY_CSS = """
 <style>
 :root {
-    --bg: #eef7ff;
-    --text: #052c5b;
-    --muted: #0a3b73;
-    --primary: #0e4f8f;
-    --primary-600: #1666b1;
-    --accent: #2a84c9;
-    --card-bg: #ffffff;
+    --blue-900:#052c5b;
+    --blue-800:#0a3b73;
+    --blue-700:#0e4f8f;
+    --blue-600:#1666b1;
+    --blue-500:#2a84c9;
+    --blue-300:#8fbde8;
+    --blue-100:#eef7ff;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #021425;
-    --text: #eaf6ff;
-    --muted: #9fc9ff;
-    --primary: #2a84c9;
-    --primary-600: #1b6fb0;
-    --accent: #6fb6ff;
-    --card-bg: #052034;
+  /* Force the app to use the blue light palette regardless of system theme */
+  html, body, [class*="css"], .stApp, .stApp .main, .stSidebar, .css-1lcbmhc, .stMarkdown, p, span, label, a, li, div {
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
   }
-}
 
-html, body, [class*="css"], .stApp {
-  background: var(--bg) !important;
-  color: var(--text) !important;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  /* Ensure small UI components also follow the same color rules */
+  .stText, .stHeader, .stMetric, .stExpander, .stButton, summary, details, summary * {
+      color: var(--blue-900) !important;
+  }
+.stApp .block-container, .stApp .main {
+    background: transparent !important;
 }
-.stApp .block-container, .stApp .main { background: transparent !important; }
 
 h1,h2,h3,h4 { color: var(--muted) !important; letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button, button {
