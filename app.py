@@ -420,7 +420,7 @@ if run and uploaded is not None:
 
     with st.status("Summarizing with Gemini…", expanded=False) as s:
         try:
-            notes = summarize_with_gemini(transcript, _gemini_key, GEMINI_MODEL)
+            notes = summarize_with_gemini(transcript, _gemini_key, GEMINI_MODEL_CANDIDATES[0])
             s.update(label="Notes generated", state="complete")
         except Exception as e:
             s.update(label="Summarization failed", state="error")
