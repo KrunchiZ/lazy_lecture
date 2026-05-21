@@ -201,13 +201,19 @@ Return STRICT JSON with this schema:
      }
   ],
   "key_terms": [{"term":"...", "definition":"..."}],
-  "questions": ["review question", ...]
+  "questions": ["review question", ...],
+  "study_materials": [
+     {
+        "resource": "Name of book, article, video, or concept",
+        "description": "Why it's relevant and what it covers"
+     }
+  ]
 }
 
 Rules:
-- Be faithful to the transcript; do not invent facts.
-- Prefer short bullets over paragraphs.
-- Include at least one helpful visual (mermaid diagram OR markdown table) where it aids understanding.
+- Be faithful to the transcript for the core notes.
+- Use visual elements (mermaid or tables) to make it easy to digest.
+- Generate additional study materials/notes related to the discussed topics.
 - Keep mermaid diagrams small (<=10 nodes) and syntactically valid.
 - Output JSON only. No prose, no code fences.
 
@@ -218,123 +224,48 @@ __TRANSCRIPT__
 """
 
 def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dict:
-    """Summarize transcript using Gemini/GenAI.
-
-    This implementation prefers the installed `google.genai` client when available,
-    but falls back to the Generative Language REST API using the `GEMINI_API_KEY`
-    constant defined at the top of the module.
-    """
-    # Prefer the module-level GEMINI_API_KEY constant if available
-    key = GEMINI_API_KEY or api_key or os.getenv("GEMINI_API_KEY")
-
+    import urllib.request
+    import urllib.error
+    
+    # Always use the GEMINI_API_KEY constant defined at the top of the app
+    key = GEMINI_API_KEY
+    if not key:
+        raise ValueError("GEMINI_API_KEY is missing. Please set it at the top of app.py.")
+    
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
-
-    diagnostics = {"client": None, "rest_attempts": []}
-
-    def _try_client_genai():
-        try:
-            # Try the simplest useful client calls we've seen in various versions
-            if hasattr(genai, "GenerativeModel"):
-                m = genai.GenerativeModel(model_name)
-                resp = m.generate_content(prompt, generation_config={"temperature": 0.3})
-                text = getattr(resp, "text", None) or (resp["candidates"][0]["content"] if isinstance(resp, dict) and resp.get("candidates") else None)
-                diagnostics["client"] = {"method": "GenerativeModel", "preview": (text or str(resp))[:500]}
-                return text
-            if hasattr(genai, "Client"):
-                client = genai.Client()
-                if hasattr(client, "generate"):
-                    resp = client.generate(model=model_name, prompt=prompt)
-                    text = getattr(resp, "text", None) or (resp.get("candidates", [{}])[0].get("content"))
-                    diagnostics["client"] = {"method": "Client.generate", "preview": (text or str(resp))[:500]}
-                    return text
-            if hasattr(genai, "generate"):
-                resp = genai.generate(prompt=prompt, model=model_name)
-                text = resp.get("candidates", [{}])[0].get("content") if isinstance(resp, dict) else None
-                diagnostics["client"] = {"method": "genai.generate", "preview": (text or str(resp))[:500]}
-                return text
-        except Exception:
-            diagnostics["client"] = {"method": "exception", "error": traceback.format_exc()}
-            return None
-
-    def _call_rest_generativelanguage(prompt_text: str) -> str:
-        # Try v1 then v1beta2 endpoints and try model name with/without 'models/' prefix
-        import urllib.request
-        import urllib.error
-        versions = ("v1", "v1beta2")
-        model_variants = (model_name, f"models/{model_name}") if not model_name.startswith("models/") else (model_name,)
-        headers = {"Content-Type": "application/json"}
-        if key:
-            headers["Authorization"] = f"Bearer {key}"
-        for version in versions:
-            for mname in model_variants:
-                url = f"https://generativelanguage.googleapis.com/{version}/models/{mname}:generateText"
-                body = json.dumps({
-                    "prompt": {"text": prompt_text},
-                    "temperature": 0.3,
-                    "maxOutputTokens": 1200,
-                }).encode("utf-8")
-                req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-                attempt = {"url": url, "model": mname, "version": version, "status": None, "raw": None, "error": None}
-                try:
-                    with urllib.request.urlopen(req, timeout=60) as resp:
-                        raw = resp.read().decode("utf-8")
-                        status = getattr(resp, "status", None) or resp.getcode()
-                        attempt["status"] = status
-                        attempt["raw"] = raw[:1000]
-                except urllib.error.HTTPError as he:
-                    attempt["status"] = getattr(he, "code", None)
-                    try:
-                        body = he.read().decode("utf-8")
-                        attempt["raw"] = body[:1000]
-                    except Exception:
-                        attempt["error"] = str(he)
-                    diagnostics["rest_attempts"].append(attempt)
-                    continue
-                except Exception as e:
-                    attempt["error"] = str(e)
-                    diagnostics["rest_attempts"].append(attempt)
-                    continue
-
-                diagnostics["rest_attempts"].append(attempt)
-
-                if not attempt.get("raw"):
-                    continue
-                try:
-                    j = json.loads(attempt["raw"])
-                except Exception:
-                    # can't parse JSON, return raw for debugging
-                    return attempt["raw"]
-                # Try common response shapes
-                if isinstance(j, dict):
-                    if "candidates" in j and j["candidates"]:
-                        cand = j["candidates"][0]
-                        if isinstance(cand, dict) and "content" in cand:
-                            return cand["content"]
-                        if isinstance(cand, str):
-                            return cand
-                    if "output" in j and isinstance(j["output"], str):
-                        return j["output"]
-                    for k in ("generated_text", "text", "content"):
-                        if k in j and isinstance(j[k], str):
-                            return j[k]
-        return ""
-
-    # First try client library
-    txt = _try_client_genai() or ""
-
-    # If client didn't produce usable text, fall back to REST call using GEMINI_API_KEY
-    if not txt:
-        txt = _call_rest_generativelanguage(prompt)
-
-    txt = (txt or "").strip()
-    if not txt:
-        # Build a helpful diagnostic message
-        msg = "Gemini/GenAI did not return any text response.\n"
-        msg += f"Client diagnostics: {diagnostics.get('client')}\n"
-        msg += "REST attempts:\n"
-        for a in diagnostics.get("rest_attempts", []):
-            msg += f" - {a.get('version')}/{a.get('model')} status={a.get('status')} error={a.get('error')} raw_preview={a.get('raw')!r}\n"
-        raise RuntimeError(msg)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+    
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "responseMimeType": "application/json"
+        }
+    }
+    
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            raw = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as he:
+        msg = he.read().decode("utf-8")
+        raise RuntimeError(f"Gemini API Error {he.code}: {msg}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to call Gemini API: {e}")
+        
+    data = json.loads(raw)
+    try:
+        txt = data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception:
+        raise RuntimeError(f"Unexpected response format from Gemini: {raw[:500]}")
+        
+    txt = txt.strip()
     try:
         return json.loads(txt)
     except json.JSONDecodeError:
@@ -342,9 +273,7 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
-            # If parsing still fails, raise with the raw text attached for debugging
-            raise RuntimeError(f"Failed to parse JSON from Gemini response: {txt[:200]}")
-
+            raise RuntimeError(f"Failed to parse JSON response: {txt[:200]}")
 
 def render_mermaid(code: str):
     html = f"""
@@ -396,6 +325,12 @@ def render_notes(notes: dict):
         for t in terms:
             st.markdown(f"- **{t.get('term','')}** — {t.get('definition','')}")
 
+    materials = notes.get("study_materials", [])
+    if materials:
+        st.markdown("### 📚 Additional Study Materials")
+        for m in materials:
+            st.markdown(f"- **{m.get('resource','')}**: {m.get('description','')}")
+            
     qs = notes.get("questions", [])
     if qs:
         st.markdown("### Self-Check Questions")
@@ -419,7 +354,13 @@ def notes_to_markdown(notes: dict) -> str:
         lines += ["", "## Key Terms"]
         lines += [f"- **{t.get('term','')}** — {t.get('definition','')}"
                   for t in notes["key_terms"]]
+    if notes.get("study_materials"):
+        lines += ["", "## Additional Study Materials"]
+        lines += [f"- **{m.get('resource','')}**: {m.get('description','')}"
+                  for m in notes["study_materials"]]
+
     if notes.get("questions"):
+
         lines += ["", "## Self-Check Questions"]
         lines += [f"- {q}" for q in notes["questions"]]
     return "\n".join(lines)
