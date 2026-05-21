@@ -217,101 +217,88 @@ __TRANSCRIPT__
 """
 
 def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dict:
-    # Configure the genai client in a robust way across package variants.
-    try:
-        if hasattr(genai, "configure"):
-            genai.configure(api_key=api_key)
-        else:
-            # try alternate package name
-            try:
-                import importlib
-                alt = importlib.import_module("google_genai")
-                if hasattr(alt, "configure"):
-                    alt.configure(api_key=api_key)
-                    globals()["genai"] = alt
-                else:
-                    os.environ.setdefault("GEMINI_API_KEY", api_key)
-            except Exception:
-                os.environ.setdefault("GEMINI_API_KEY", api_key)
-    except Exception:
-        os.environ.setdefault("GEMINI_API_KEY", api_key)
+    """Summarize transcript using Gemini/GenAI.
+
+    This implementation prefers the installed `google.genai` client when available,
+    but falls back to the Generative Language REST API using the `GEMINI_API_KEY`
+    constant defined at the top of the module.
+    """
+    # Prefer the module-level GEMINI_API_KEY constant if available
+    key = GEMINI_API_KEY or api_key or os.getenv("GEMINI_API_KEY")
 
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
 
-    def _resp_to_text(resp_obj):
+    def _try_client_genai():
         try:
-            if resp_obj is None:
-                return ""
-            if isinstance(resp_obj, str):
-                return resp_obj
-            if hasattr(resp_obj, "text"):
-                return resp_obj.text
-            if isinstance(resp_obj, dict):
-                # common keys
-                for k in ("text", "content", "output", "message"):
-                    if k in resp_obj and isinstance(resp_obj[k], str):
-                        return resp_obj[k]
-                # candidates / choices
-                if "candidates" in resp_obj and resp_obj["candidates"]:
-                    c = resp_obj["candidates"][0]
-                    if isinstance(c, dict):
-                        for kk in ("content", "text", "output"):
-                            if kk in c and isinstance(c[kk], str):
-                                return c[kk]
-            # try attributes with list-like candidates
-            if hasattr(resp_obj, "candidates") and getattr(resp_obj, "candidates"):
-                first = getattr(resp_obj, "candidates")[0]
-                if hasattr(first, "content"):
-                    return first.content
-                if isinstance(first, dict):
-                    for kk in ("content", "text", "output"):
-                        if kk in first:
-                            return first[kk]
-        except Exception:
-            pass
-        try:
-            return str(resp_obj)
-        except Exception:
-            return ""
-
-    txt = ""
-    # Try several client interfaces
-    try:
-        # genai.GenerativeModel interface
-        if hasattr(genai, "GenerativeModel"):
-            model = genai.GenerativeModel(model_name)
-            resp = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json", "temperature": 0.3},
-            )
-            txt = _resp_to_text(resp)
-        else:
-            # try client() style
+            # Try the simplest useful client calls we've seen in various versions
+            if hasattr(genai, "GenerativeModel"):
+                m = genai.GenerativeModel(model_name)
+                resp = m.generate_content(prompt, generation_config={"temperature": 0.3})
+                return getattr(resp, "text", None) or (resp["candidates"][0]["content"] if isinstance(resp, dict) and resp.get("candidates") else None)
             if hasattr(genai, "Client"):
                 client = genai.Client()
                 if hasattr(client, "generate"):
                     resp = client.generate(model=model_name, prompt=prompt)
-                    txt = _resp_to_text(resp)
-                elif hasattr(client, "generate_text"):
-                    resp = client.generate_text(model=model_name, prompt=prompt)
-                    txt = _resp_to_text(resp)
-            # try module-level generate functions
-            elif hasattr(genai, "generate"):
+                    return getattr(resp, "text", None) or (resp.get("candidates", [{}])[0].get("content"))
+            if hasattr(genai, "generate"):
                 resp = genai.generate(prompt=prompt, model=model_name)
-                txt = _resp_to_text(resp)
-            elif hasattr(genai, "generate_text"):
-                resp = genai.generate_text(prompt=prompt, model=model_name)
-                txt = _resp_to_text(resp)
-            else:
-                # last resort: environment-based remote call unavailable; raise
-                raise RuntimeError("No supported genai generation interface found")
-    except Exception as e:
-        raise
+                return resp.get("candidates", [{}])[0].get("content") if isinstance(resp, dict) else None
+        except Exception:
+            return None
+
+    def _call_rest_generativelanguage(prompt_text: str) -> str:
+        # Try v1 then v1beta2 endpoints
+        for version in ("v1", "v1beta2"):
+            url = f"https://generativelanguage.googleapis.com/{version}/models/{model_name}:generateText?key={key}"
+            try:
+                import urllib.request
+                import urllib.error
+                body = json.dumps({
+                    "prompt": {"text": prompt_text},
+                    "temperature": 0.3,
+                    "maxOutputTokens": 12000,
+                }).encode("utf-8")
+                req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    raw = resp.read().decode("utf-8")
+                    if not raw:
+                        continue
+                    j = json.loads(raw)
+                    # Try common response shapes
+                    if isinstance(j, dict):
+                        if "candidates" in j and j["candidates"]:
+                            cand = j["candidates"][0]
+                            if isinstance(cand, dict) and "content" in cand:
+                                return cand["content"]
+                        if "output" in j and isinstance(j["output"], str):
+                            return j["output"]
+                        # some versions use 'generated_text' or 'text'
+                        for k in ("generated_text", "text", "content"):
+                            if k in j and isinstance(j[k], str):
+                                return j[k]
+            except Exception:
+                continue
+        return ""
+
+    # First try client library
+    txt = _try_client_genai() or ""
+
+    # If client didn't produce usable text, fall back to REST call using GEMINI_API_KEY
+    if not txt:
+        txt = _call_rest_generativelanguage(prompt)
+
+    txt = (txt or "").strip()
+    if not txt:
+        raise RuntimeError("Gemini/GenAI did not return any text response")
     try:
         return json.loads(txt)
     except json.JSONDecodeError:
         cleaned = txt.strip("`").lstrip("json").strip()
-        return json.loads(cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # If parsing still fails, raise with the raw text attached for debugging
+            raise RuntimeError(f"Failed to parse JSON from Gemini response: {txt[:200]}")
 
 
 def render_mermaid(code: str):
