@@ -15,56 +15,85 @@ import traceback
 from pathlib import Path
 
 import streamlit as st
-
-# Primary color system: uses semantic variables and respects user's
-# preferred color scheme via media queries. These provide high contrast
-# pairs for both light and dark modes.
+NAVY_CSS = """
 NAVY_CSS = """
 <style>
+/* Color system with accessible contrasts for light and dark */
 :root {
-    --bg: #eef7ff;
-    --text: #052c5b;
-    --muted: #0a3b73;
-    --primary: #0e4f8f;
+    /* Light theme */
+    --bg: #eef7ff;            /* light background */
+    --text: #052c5b;          /* main text (dark navy) */
+    --muted: #0a3b73;         /* headings */
+    --primary: #0e4f8f;       /* primary UI color */
     --primary-600: #1666b1;
     --accent: #2a84c9;
     --card-bg: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #021425;
-    --text: #eaf6ff;
-    --muted: #9fc9ff;
-    --primary: #2a84c9;
-    --primary-600: #1b6fb0;
-    --accent: #6fb6ff;
-    --card-bg: #052034;
-  }
+    :root {
+        /* Dark theme palette that keeps high contrast */
+        --bg: #021425;         /* deep navy background */
+        --text: #eaf6ff;       /* very light text */
+        --muted: #9fc9ff;      /* headings */
+        --primary: #2a84c9;    /* brighter primary on dark */
+        --primary-600: #1b6fb0;
+        --accent: #6fb6ff;
+        --card-bg: #052034;    /* slightly lighter card surface */
+    }
 }
 
 html, body, [class*="css"], .stApp {
-  background: var(--bg) !important;
-  color: var(--text) !important;
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
-.stApp .block-container, .stApp .main { background: transparent !important; }
+.stApp .block-container, .stApp .main {
+    background: transparent !important;
+}
 
-h1,h2,h3,h4 { color: var(--muted) !important; letter-spacing:-0.01em; }
+h1, h2, h3, h4 { color: var(--muted) !important; letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button, button {
-  background: var(--primary) !important; color: #ffffff !important;
-  border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
-  box-shadow: none !important; background-image: none !important;
-  -webkit-appearance: none !important; appearance: none !important; outline: none !important;
+    background: var(--primary) !important; color: #ffffff !important;
+    border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
+    box-shadow: none !important; background-image: none !important;
+    -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
 .stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--primary-600) !important; }
 .stProgress > div > div > div > div { background-color: var(--primary-600); }
-div[data-testid="stFileUploader"] section { background: var(--card-bg); border:1px dashed var(--accent); border-radius:12px; }
-.notes-card { background:var(--card-bg); border-left:5px solid var(--primary); padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-.kpi { background:var(--primary); color:white; padding:1rem; border-radius:10px; text-align:center; }
+div[data-testid="stFileUploader"] section {
+    background: var(--card-bg); border:1px dashed var(--accent); border-radius:12px;
+}
+.notes-card {
+    background:var(--card-bg); border-left:5px solid var(--primary);
+    padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.kpi {
+    background:var(--primary); color:white; padding:1rem; border-radius:10px;
+    text-align:center;
+}
 .kpi .v { font-size:1.6rem; font-weight:700; }
-.kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em; }
+.kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
 hr { border-color: rgba(0,0,0,0.06); }
+/* Make all corners sharp */
+* { border-radius: 0 !important; }
+</style>
+"""
+st.markdown(NAVY_CSS, unsafe_allow_html=True)
+.notes-card {
+    background:white; border-left:5px solid var(--blue-700);
+    padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
+    box-shadow: 0 1px 3px rgba(10,54,91,0.06);
+}
+.kpi {
+    background:var(--blue-700); color:white; padding:1rem; border-radius:10px;
+    text-align:center;
+}
+.kpi .v { font-size:1.6rem; font-weight:700; }
+.kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
+hr { border-color: var(--blue-300); }
+/* Make all corners sharp */
 * { border-radius: 0 !important; }
 </style>
 """
@@ -74,12 +103,12 @@ EXTRA_CSS = """
 <style>
 /* Top banner / header */
 header, .stApp header, div[role='banner'], div[role='toolbar'], nav {
-    background: var(--bg) !important;
-    color: var(--text) !important;
+    background: var(--blue-100) !important;
+    color: var(--blue-900) !important;
 }
 /* Buttons (primary and download) */
 .stButton>button, .stDownloadButton>button, button {
-    background: var(--primary) !important;
+    background: var(--blue-700) !important;
     color: #ffffff !important;
     border: 0 !important; box-shadow: none !important; background-image: none !important;
     -webkit-appearance: none !important; appearance: none !important; outline: none !important;
@@ -89,25 +118,25 @@ button svg, .stButton>button svg, .stDownloadButton>button svg {
     fill: #ffffff !important;
 }
 /* Sidebar / menu */
-.stSidebar { background: var(--bg) !important; color: var(--text) !important; }
+.stSidebar { background: var(--blue-100) !important; color: var(--blue-900) !important; }
 /* Centered caption helper */
-.center-caption { text-align: center; color: var(--text); display:block; width:100%; margin-top:0.25rem; }
+.center-caption { text-align: center; color: var(--blue-900); display:block; width:100%; margin-top:0.25rem; }
 /* Make links and emphasized text use blue tones */
-a, a:visited { color: var(--primary) !important; }
+a, a:visited { color: var(--blue-700) !important; }
   /* Streamlit expander header styling */
   [data-testid="stExpander"] details summary {
-      background: var(--card-bg) !important;
-      color: var(--text) !important;
-      border: 1px solid var(--accent) !important;
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
+      border: 1px solid var(--blue-300) !important;
   }
   [data-testid="stExpander"] details[open] summary {
-      background: var(--primary) !important;
+      background: var(--blue-700) !important;
       color: #ffffff !important;
-      border-color: var(--primary) !important;
+      border-color: var(--blue-700) !important;
   }
   [data-testid="stExpander"] details summary:hover {
-      background: var(--card-bg) !important;
-      color: var(--text) !important;
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
   }
 /* Normalize header / top-bar action buttons to consistent size */
 header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
