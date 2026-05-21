@@ -236,14 +236,77 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
     except Exception:
         os.environ.setdefault("GEMINI_API_KEY", api_key)
 
-    model = genai.GenerativeModel(model_name)
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
-    resp = model.generate_content(
-        prompt,
-        generation_config={"response_mime_type": "application/json",
-                           "temperature": 0.3},
-    )
-    txt = resp.text.strip()
+
+    def _resp_to_text(resp_obj):
+        try:
+            if resp_obj is None:
+                return ""
+            if isinstance(resp_obj, str):
+                return resp_obj
+            if hasattr(resp_obj, "text"):
+                return resp_obj.text
+            if isinstance(resp_obj, dict):
+                # common keys
+                for k in ("text", "content", "output", "message"):
+                    if k in resp_obj and isinstance(resp_obj[k], str):
+                        return resp_obj[k]
+                # candidates / choices
+                if "candidates" in resp_obj and resp_obj["candidates"]:
+                    c = resp_obj["candidates"][0]
+                    if isinstance(c, dict):
+                        for kk in ("content", "text", "output"):
+                            if kk in c and isinstance(c[kk], str):
+                                return c[kk]
+            # try attributes with list-like candidates
+            if hasattr(resp_obj, "candidates") and getattr(resp_obj, "candidates"):
+                first = getattr(resp_obj, "candidates")[0]
+                if hasattr(first, "content"):
+                    return first.content
+                if isinstance(first, dict):
+                    for kk in ("content", "text", "output"):
+                        if kk in first:
+                            return first[kk]
+        except Exception:
+            pass
+        try:
+            return str(resp_obj)
+        except Exception:
+            return ""
+
+    txt = ""
+    # Try several client interfaces
+    try:
+        # genai.GenerativeModel interface
+        if hasattr(genai, "GenerativeModel"):
+            model = genai.GenerativeModel(model_name)
+            resp = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json", "temperature": 0.3},
+            )
+            txt = _resp_to_text(resp)
+        else:
+            # try client() style
+            if hasattr(genai, "Client"):
+                client = genai.Client()
+                if hasattr(client, "generate"):
+                    resp = client.generate(model=model_name, prompt=prompt)
+                    txt = _resp_to_text(resp)
+                elif hasattr(client, "generate_text"):
+                    resp = client.generate_text(model=model_name, prompt=prompt)
+                    txt = _resp_to_text(resp)
+            # try module-level generate functions
+            elif hasattr(genai, "generate"):
+                resp = genai.generate(prompt=prompt, model=model_name)
+                txt = _resp_to_text(resp)
+            elif hasattr(genai, "generate_text"):
+                resp = genai.generate_text(prompt=prompt, model=model_name)
+                txt = _resp_to_text(resp)
+            else:
+                # last resort: environment-based remote call unavailable; raise
+                raise RuntimeError("No supported genai generation interface found")
+    except Exception as e:
+        raise
     try:
         return json.loads(txt)
     except json.JSONDecodeError:
