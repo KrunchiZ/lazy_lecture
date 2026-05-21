@@ -26,7 +26,11 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
-GEMINI_MODEL  = "gemini-1.5-flash-8b"      # "gemini-1.5-flash-8b" has the highest daily quota
+GEMINI_MODEL_CANDIDATES = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+]
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 # ============================================================
 
@@ -232,9 +236,18 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
     if not key:
         raise ValueError("GEMINI_API_KEY is missing. Please set it at the top of app.py.")
     
+    def available_models() -> list[str]:
+        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+        req = urllib.request.Request(list_url, method="GET")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        return [
+            model.get("name", "").split("/")[-1]
+            for model in payload.get("models", [])
+            if "generateContent" in model.get("supportedGenerationMethods", [])
+        ]
+
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
-    
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -242,22 +255,38 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
             "responseMimeType": "application/json"
         }
     }
-    
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    
+
+    model_candidates = [model_name] + [m for m in GEMINI_MODEL_CANDIDATES if m != model_name]
     try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            raw = resp.read().decode("utf-8")
-    except urllib.error.HTTPError as he:
-        msg = he.read().decode("utf-8")
-        raise RuntimeError(f"Gemini API Error {he.code}: {msg}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to call Gemini API: {e}")
+        supported = set(available_models())
+        model_candidates = [m for m in model_candidates if m in supported] or model_candidates
+    except Exception:
+        pass
+
+    last_error = None
+    raw = None
+    for selected_model in model_candidates:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{selected_model}:generateContent?key={key}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                raw = resp.read().decode("utf-8")
+            break
+        except urllib.error.HTTPError as he:
+            msg = he.read().decode("utf-8")
+            last_error = f"Gemini API Error {he.code} for {selected_model}: {msg}"
+            if he.code != 404:
+                raise RuntimeError(last_error)
+        except Exception as e:
+            last_error = f"Failed to call Gemini API with {selected_model}: {e}"
+
+    if raw is None:
+        raise RuntimeError(last_error or "Failed to call Gemini API")
         
     data = json.loads(raw)
     try:
