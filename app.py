@@ -156,7 +156,7 @@ c1, c2, c3 = st.columns([1, 1, 1])
 with c2:
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
-    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.\n"
+    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.<br>"
                 "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
                 unsafe_allow_html=True)
 
