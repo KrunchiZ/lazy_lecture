@@ -1,0 +1,33 @@
+[theme]
+base = "light"
+primaryColor = "#2b65a8"
+borderColor = "#2b65a8"
+showWidgetBorder = true
+
+[theme.light]
+backgroundColor = "rgba(255, 255, 255, 0.8)"
+secondaryBackgroundColor = "rgba(255, 255, 255, 0.8)"
+textColor = "#000000"
+linkColor = "#2b65a8"
+borderColor = "#2b65a8"
+
+[theme.light.sidebar]
+backgroundColor = "rgba(255, 255, 255, 0.8)"
+secondaryBackgroundColor = "rgba(255, 255, 255, 0.8)"
+textColor = "#000000"
+linkColor = "#2b65a8"
+borderColor = "#2b65a8"
+
+[theme.dark]
+backgroundColor = "rgba(0, 0, 0, 0.8)"
+secondaryBackgroundColor = "rgba(0, 0, 0, 0.8)"
+textColor = "#ffffff"
+linkColor = "#2b65a8"
+borderColor = "#2b65a8"
+
+[theme.dark.sidebar]
+backgroundColor = "rgba(0, 0, 0, 0.8)"
+secondaryBackgroundColor = "rgba(0, 0, 0, 0.8)"
+textColor = "#ffffff"
+linkColor = "#2b65a8"
+borderColor = "#2b65a8"

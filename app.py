@@ -44,29 +44,16 @@ st.set_page_config(
 NAVY_CSS = """
 <style>
 :root {
-    --app-bg:#e9f1fb;
-    --app-surface:#f8fbff;
-    --app-text:#0a2a52;
-    --app-heading:#062345;
-    --app-muted:#446284;
-    --app-border:#8aa8cf;
-    --app-accent:#0b3d73;
-    --app-accent-hover:#124d8f;
-    --app-on-accent:#f8fbff;
+    --app-bg: var(--background-color, rgba(255, 255, 255, 0.8));
+    --app-surface: var(--secondary-background-color, rgba(255, 255, 255, 0.8));
+    --app-text: var(--text-color, #000000);
+    --app-heading: var(--text-color, #000000);
+    --app-muted: var(--text-color, #000000);
+    --app-border: var(--border-color, #2b65a8);
+    --app-accent: var(--primary-color, #2b65a8);
+    --app-accent-hover: var(--primary-color, #2b65a8);
+    --app-on-accent: var(--text-color, #000000);
     color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-    :root {
-        --app-bg:#061120;
-        --app-surface:#0b1d33;
-        --app-text:#e8f1fc;
-        --app-heading:#f6f9fe;
-        --app-muted:#9db3cf;
-        --app-border:#35547d;
-        --app-accent:#2a5d99;
-        --app-accent-hover:#3b72b4;
-        --app-on-accent:#f6f9fe;
-    }
 }
 html, body, [class*="css"], .stApp {
     background: var(--app-bg);
