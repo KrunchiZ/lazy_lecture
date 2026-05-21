@@ -11,6 +11,7 @@ Lecture Notes Generator — Streamlit app
 import os
 import json
 import tempfile
+import traceback
 from pathlib import Path
 
 import streamlit as st
@@ -228,22 +229,31 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
 
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
 
+    diagnostics = {"client": None, "rest_attempts": []}
+
     def _try_client_genai():
         try:
             # Try the simplest useful client calls we've seen in various versions
             if hasattr(genai, "GenerativeModel"):
                 m = genai.GenerativeModel(model_name)
                 resp = m.generate_content(prompt, generation_config={"temperature": 0.3})
-                return getattr(resp, "text", None) or (resp["candidates"][0]["content"] if isinstance(resp, dict) and resp.get("candidates") else None)
+                text = getattr(resp, "text", None) or (resp["candidates"][0]["content"] if isinstance(resp, dict) and resp.get("candidates") else None)
+                diagnostics["client"] = {"method": "GenerativeModel", "preview": (text or str(resp))[:500]}
+                return text
             if hasattr(genai, "Client"):
                 client = genai.Client()
                 if hasattr(client, "generate"):
                     resp = client.generate(model=model_name, prompt=prompt)
-                    return getattr(resp, "text", None) or (resp.get("candidates", [{}])[0].get("content"))
+                    text = getattr(resp, "text", None) or (resp.get("candidates", [{}])[0].get("content"))
+                    diagnostics["client"] = {"method": "Client.generate", "preview": (text or str(resp))[:500]}
+                    return text
             if hasattr(genai, "generate"):
                 resp = genai.generate(prompt=prompt, model=model_name)
-                return resp.get("candidates", [{}])[0].get("content") if isinstance(resp, dict) else None
+                text = resp.get("candidates", [{}])[0].get("content") if isinstance(resp, dict) else None
+                diagnostics["client"] = {"method": "genai.generate", "preview": (text or str(resp))[:500]}
+                return text
         except Exception:
+            diagnostics["client"] = {"method": "exception", "error": traceback.format_exc()}
             return None
 
     def _call_rest_generativelanguage(prompt_text: str) -> str:
@@ -264,26 +274,36 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
                     "maxOutputTokens": 1200,
                 }).encode("utf-8")
                 req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+                attempt = {"url": url, "model": mname, "version": version, "status": None, "raw": None, "error": None}
                 try:
                     with urllib.request.urlopen(req, timeout=60) as resp:
                         raw = resp.read().decode("utf-8")
+                        status = getattr(resp, "status", None) or resp.getcode()
+                        attempt["status"] = status
+                        attempt["raw"] = raw[:1000]
                 except urllib.error.HTTPError as he:
+                    attempt["status"] = getattr(he, "code", None)
                     try:
-                        raw = he.read().decode("utf-8")
+                        body = he.read().decode("utf-8")
+                        attempt["raw"] = body[:1000]
                     except Exception:
-                        raw = str(he)
-                    # try next variant
+                        attempt["error"] = str(he)
+                    diagnostics["rest_attempts"].append(attempt)
                     continue
-                except Exception:
+                except Exception as e:
+                    attempt["error"] = str(e)
+                    diagnostics["rest_attempts"].append(attempt)
                     continue
 
-                if not raw:
+                diagnostics["rest_attempts"].append(attempt)
+
+                if not attempt.get("raw"):
                     continue
                 try:
-                    j = json.loads(raw)
+                    j = json.loads(attempt["raw"])
                 except Exception:
                     # can't parse JSON, return raw for debugging
-                    return raw
+                    return attempt["raw"]
                 # Try common response shapes
                 if isinstance(j, dict):
                     if "candidates" in j and j["candidates"]:
@@ -308,7 +328,13 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
 
     txt = (txt or "").strip()
     if not txt:
-        raise RuntimeError("Gemini/GenAI did not return any text response")
+        # Build a helpful diagnostic message
+        msg = "Gemini/GenAI did not return any text response.\n"
+        msg += f"Client diagnostics: {diagnostics.get('client')}\n"
+        msg += "REST attempts:\n"
+        for a in diagnostics.get("rest_attempts", []):
+            msg += f" - {a.get('version')}/{a.get('model')} status={a.get('status')} error={a.get('error')} raw_preview={a.get('raw')!r}\n"
+        raise RuntimeError(msg)
     try:
         return json.loads(txt)
     except json.JSONDecodeError:
