@@ -79,6 +79,8 @@ div[data-testid="stFileUploader"] section {
 .kpi .v { font-size:1.6rem; font-weight:700; }
 .kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
 hr { border-color: var(--blue-300); }
+/* Make all corners sharp */
+* { border-radius: 0 !important; }
 </style>
 """
 st.markdown(NAVY_CSS, unsafe_allow_html=True)
@@ -133,11 +135,11 @@ uploaded = st.file_uploader(
     accept_multiple_files=False,
 )
 
-col_a, col_b = st.columns([1, 1])
-with col_a:
+# Center the Generate Notes button and place the free-tier message below it
+c1, c2, c3 = st.columns([1, 1, 1])
+with c2:
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
-with col_b:
     st.caption("Groq free tier limits file size to ~25 MB. "
                "For larger lectures, extract audio first (e.g. with ffmpeg).")
 
