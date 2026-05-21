@@ -59,8 +59,9 @@ html, body, [class*="css"], .stApp {
 h1, h2, h3, h4 { color: var(--blue-800) !important; letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button, button {
     background: var(--blue-700) !important; color: var(--blue-100) !important;
-    border:0 !important; border-radius:8px !important;
-    padding: 0.55rem 1.1rem !important; font-weight:600 !important;
+    border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
+    box-shadow: none !important; background-image: none !important;
+    -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
 .stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--blue-600) !important; }
 .stProgress > div > div > div > div { background-color: var(--blue-600); }
@@ -96,7 +97,8 @@ header, .stApp header, div[role='banner'], div[role='toolbar'], nav {
 .stButton>button, .stDownloadButton>button, button {
     background: var(--blue-700) !important;
     color: #ffffff !important;
-    border: 0 !important;
+    border: 0 !important; box-shadow: none !important; background-image: none !important;
+    -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
 /* Ensure SVG icons in buttons are visible */
 button svg, .stButton>button svg, .stDownloadButton>button svg {
@@ -104,6 +106,8 @@ button svg, .stButton>button svg, .stDownloadButton>button svg {
 }
 /* Sidebar / menu */
 .stSidebar { background: var(--blue-100) !important; color: var(--blue-900) !important; }
+/* Centered caption helper */
+.center-caption { text-align: center; color: var(--blue-900); display:block; width:100%; margin-top:0.25rem; }
 /* Make links and emphasized text use blue tones */
 a, a:visited { color: var(--blue-700) !important; }
 </style>
@@ -140,8 +144,9 @@ c1, c2, c3 = st.columns([1, 1, 1])
 with c2:
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
-    st.caption("Groq free tier limits file size to ~25 MB. "
-               "For larger lectures, extract audio first (e.g. with ffmpeg).")
+    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB. "
+                "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
+                unsafe_allow_html=True)
 
 # ---------- Helpers ----------
 def transcribe_with_groq(file_bytes: bytes, filename: str, api_key: str,
