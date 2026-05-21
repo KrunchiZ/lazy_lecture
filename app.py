@@ -217,7 +217,25 @@ __TRANSCRIPT__
 """
 
 def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dict:
-    genai.configure(api_key=api_key)
+    # Configure the genai client in a robust way across package variants.
+    try:
+        if hasattr(genai, "configure"):
+            genai.configure(api_key=api_key)
+        else:
+            # try alternate package name
+            try:
+                import importlib
+                alt = importlib.import_module("google_genai")
+                if hasattr(alt, "configure"):
+                    alt.configure(api_key=api_key)
+                    globals()["genai"] = alt
+                else:
+                    os.environ.setdefault("GEMINI_API_KEY", api_key)
+            except Exception:
+                os.environ.setdefault("GEMINI_API_KEY", api_key)
+    except Exception:
+        os.environ.setdefault("GEMINI_API_KEY", api_key)
+
     model = genai.GenerativeModel(model_name)
     prompt = NOTES_PROMPT.replace("__TRANSCRIPT__", transcript[:120_000])
     resp = model.generate_content(
