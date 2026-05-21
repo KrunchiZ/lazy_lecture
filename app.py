@@ -17,7 +17,6 @@ from pathlib import Path
 import streamlit as st
 from groq import Groq
 import google.genai as genai
-from pathlib import Path as _Path
 
 # ============================================================
 # 🔑 PUT YOUR API KEYS HERE
@@ -175,29 +174,6 @@ st.markdown(
 
 if "generated_result" not in st.session_state:
     st.session_state.generated_result = None
-
-# Persistent path for remembering last generated result across sessions
-_LAST_RESULT_FILE = _Path('.streamlit') / 'last_result.json'
-def _load_last_result() -> dict | None:
-    try:
-        if _LAST_RESULT_FILE.exists():
-            return json.loads(_LAST_RESULT_FILE.read_text())
-    except Exception:
-        pass
-    return None
-
-def _save_last_result(obj: dict) -> None:
-    try:
-        _LAST_RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _LAST_RESULT_FILE.write_text(json.dumps(obj, ensure_ascii=False))
-    except Exception:
-        pass
-
-# Load persisted result on startup if session state is empty
-if st.session_state.generated_result is None:
-    persisted = _load_last_result()
-    if persisted:
-        st.session_state.generated_result = persisted
 
 # Resolve keys (constants above, or env vars as a fallback)
 _groq_key = GROQ_API_KEY if GROQ_API_KEY and not GROQ_API_KEY.startswith("paste-") \
@@ -519,8 +495,6 @@ if run and uploaded is not None:
         "transcript": transcript,
         "notes": notes,
     }
-    # persist to disk so the app remembers across browser sessions
-    _save_last_result(st.session_state.generated_result)
     current_result = st.session_state.generated_result
 
 if current_result:
@@ -529,20 +503,6 @@ if current_result:
 
     st.markdown("---")
     render_notes(notes)
-
-    # allow user to forget the remembered result
-    c_clear, c_dl = st.columns([1, 3])
-    with c_clear:
-        if st.button("Forget saved result"):
-            st.session_state.generated_result = None
-            try:
-                if _LAST_RESULT_FILE.exists():
-                    _LAST_RESULT_FILE.unlink()
-            except Exception:
-                pass
-            st.experimental_rerun()
-    with c_dl:
-        pass
 
     md = notes_to_markdown(notes)
     st.download_button("⬇️ Download notes (Markdown)", md,
