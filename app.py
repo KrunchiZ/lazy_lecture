@@ -5,7 +5,7 @@ Lecture Notes Generator — Streamlit app
 - Summarize into structured notes with Google Gemini (free-tier)
 - Monochromatic blue UI
 
->>> PASTE YOUR API KEYS BELOW <<<
+>>> PASTE YOUR API KEYS BELOW <<<   
 """
 
 import os
@@ -173,8 +173,8 @@ c1, c2, c3 = st.columns([1, 1, 1])
 with c2:
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
-    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.<br>"
-                "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
+    st.markdown("<div class='center-caption'>Uploader may accept larger files (client limit), but the Groq free tier limits file uploads to ~25 MB.<br>"
+                "For larger lectures, extract audio first (e.g. with ffmpeg) or split the recording.</div>",
                 unsafe_allow_html=True)
 
 # ---------- Helpers ----------
@@ -441,6 +441,10 @@ if run and uploaded is not None:
     file_bytes = uploaded.read()
     size_mb = len(file_bytes) / (1024 * 1024)
     st.info(f"`{uploaded.name}` — {size_mb:.1f} MB")
+    # Enforce Groq free-tier practical limit to avoid confusing server errors
+    if size_mb > 25:
+        st.error(f"Uploaded file is {size_mb:.1f} MB — Groq free tier supports ~25 MB. Transcription will likely fail. Please upload a smaller file or extract/split audio.")
+        st.stop()
 
     with st.status("Transcribing with Groq Whisper…", expanded=False) as s:
         try:
