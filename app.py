@@ -44,47 +44,67 @@ st.set_page_config(
 NAVY_CSS = """
 <style>
 :root {
-    --blue-900:#052c5b;
-    --blue-800:#0a3b73;
-    --blue-700:#0e4f8f;
-    --blue-600:#1666b1;
-    --blue-500:#2a84c9;
-    --blue-300:#8fbde8;
-    --blue-100:#eef7ff;
+    --app-bg:#e9f1fb;
+    --app-surface:#f8fbff;
+    --app-text:#0a2a52;
+    --app-heading:#062345;
+    --app-muted:#446284;
+    --app-border:#8aa8cf;
+    --app-accent:#0b3d73;
+    --app-accent-hover:#124d8f;
+    --app-on-accent:#f8fbff;
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --app-bg:#061120;
+        --app-surface:#0b1d33;
+        --app-text:#e8f1fc;
+        --app-heading:#f6f9fe;
+        --app-muted:#9db3cf;
+        --app-border:#35547d;
+        --app-accent:#2a5d99;
+        --app-accent-hover:#3b72b4;
+        --app-on-accent:#f6f9fe;
+    }
 }
 html, body, [class*="css"], .stApp {
-    background: var(--blue-100);
-    color: var(--blue-900);
+    background: var(--app-bg);
+    color: var(--app-text);
     font-family: 'Inter', system-ui, sans-serif;
+}
+.stApp, .stApp p, .stApp li, .stApp label, .stApp span, .stApp small,
+.stApp div[data-testid="stMarkdownContainer"], .stApp div[data-testid="stMarkdownContainer"] * {
+    color: var(--app-text);
 }
 .stApp .block-container, .stApp .main {
     background: transparent !important;
 }
 
-h1, h2, h3, h4 { color: var(--blue-800) !important; letter-spacing:-0.01em; }
+h1, h2, h3, h4 { color: var(--app-heading) !important; letter-spacing:-0.01em; }
 .stButton>button, .stDownloadButton>button, button {
-    background: var(--blue-700) !important; color: var(--blue-100) !important;
+    background: var(--app-accent) !important; color: var(--app-on-accent) !important;
     border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
     box-shadow: none !important; background-image: none !important;
     -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
-.stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--blue-600) !important; }
-.stProgress > div > div > div > div { background-color: var(--blue-600); }
+.stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--app-accent-hover) !important; }
+.stProgress > div > div > div > div { background-color: var(--app-accent-hover); }
 div[data-testid="stFileUploader"] section {
-    background: white; border:1px dashed var(--blue-500); border-radius:12px;
+    background: var(--app-surface); border:1px dashed var(--app-border); border-radius:12px;
 }
 .notes-card {
-    background:white; border-left:5px solid var(--blue-700);
+    background:var(--app-surface); border-left:5px solid var(--app-accent);
     padding:1.25rem 1.5rem; border-radius:10px; margin-bottom:1rem;
-    box-shadow: 0 1px 3px rgba(10,54,91,0.06);
+    box-shadow: 0 1px 3px rgba(6,35,69,0.08);
 }
 .kpi {
-    background:var(--blue-700); color:white; padding:1rem; border-radius:10px;
+    background:var(--app-accent); color:var(--app-on-accent); padding:1rem; border-radius:10px;
     text-align:center;
 }
 .kpi .v { font-size:1.6rem; font-weight:700; }
 .kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
-hr { border-color: var(--blue-300); }
+hr { border-color: var(--app-border); }
 /* Make all corners sharp */
 * { border-radius: 0 !important; }
 </style>
@@ -95,40 +115,40 @@ EXTRA_CSS = """
 <style>
 /* Top banner / header */
 header, .stApp header, div[role='banner'], div[role='toolbar'], nav {
-    background: var(--blue-100) !important;
-    color: var(--blue-900) !important;
+    background: var(--app-bg) !important;
+    color: var(--app-text) !important;
 }
 /* Buttons (primary and download) */
 .stButton>button, .stDownloadButton>button, button {
-    background: var(--blue-700) !important;
-    color: #ffffff !important;
+    background: var(--app-accent) !important;
+    color: var(--app-on-accent) !important;
     border: 0 !important; box-shadow: none !important; background-image: none !important;
     -webkit-appearance: none !important; appearance: none !important; outline: none !important;
 }
 /* Ensure SVG icons in buttons are visible */
 button svg, .stButton>button svg, .stDownloadButton>button svg {
-    fill: #ffffff !important;
+    fill: var(--app-on-accent) !important;
 }
 /* Sidebar / menu */
-.stSidebar { background: var(--blue-100) !important; color: var(--blue-900) !important; }
+.stSidebar { background: var(--app-bg) !important; color: var(--app-text) !important; }
 /* Centered caption helper */
-.center-caption { text-align: center; color: var(--blue-900); display:block; width:100%; margin-top:0.25rem; }
+.center-caption { text-align: center; color: var(--app-muted); display:block; width:100%; margin-top:0.25rem; }
 /* Make links and emphasized text use blue tones */
-a, a:visited { color: var(--blue-700) !important; }
+a, a:visited { color: var(--app-accent) !important; }
   /* Streamlit expander header styling */
   [data-testid="stExpander"] details summary {
-      background: var(--blue-100) !important;
-      color: var(--blue-900) !important;
-      border: 1px solid var(--blue-300) !important;
+      background: var(--app-bg) !important;
+      color: var(--app-text) !important;
+      border: 1px solid var(--app-border) !important;
   }
   [data-testid="stExpander"] details[open] summary {
-      background: var(--blue-700) !important;
-      color: #ffffff !important;
-      border-color: var(--blue-700) !important;
+      background: var(--app-accent) !important;
+      color: var(--app-on-accent) !important;
+      border-color: var(--app-accent) !important;
   }
   [data-testid="stExpander"] details summary:hover {
-      background: var(--blue-100) !important;
-      color: var(--blue-900) !important;
+      background: var(--app-bg) !important;
+      color: var(--app-text) !important;
   }
 /* Normalize header / top-bar action buttons to consistent size */
 header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
