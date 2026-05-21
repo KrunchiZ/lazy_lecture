@@ -52,11 +52,17 @@ NAVY_CSS = """
     --blue-300:#8fbde8;
     --blue-100:#eef7ff;
 }
-html, body, [class*="css"], .stApp {
-    background: var(--blue-100);
-    color: var(--blue-900);
-    font-family: 'Inter', system-ui, sans-serif;
-}
+  /* Force the app to use the blue light palette regardless of system theme */
+  html, body, [class*="css"], .stApp, .stApp .main, .stSidebar, .css-1lcbmhc, .stMarkdown, p, span, label, a, li, div {
+      background: var(--blue-100) !important;
+      color: var(--blue-900) !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+  }
+
+  /* Ensure small UI components also follow the same color rules */
+  .stText, .stHeader, .stMetric, .stExpander, .stButton, summary, details, summary * {
+      color: var(--blue-900) !important;
+  }
 .stApp .block-container, .stApp .main {
     background: transparent !important;
 }
