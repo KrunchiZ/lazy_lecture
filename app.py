@@ -15,6 +15,24 @@ import traceback
 from pathlib import Path
 
 import streamlit as st
+from groq import Groq
+import google.genai as genai
+
+# ============================================================
+# 🔑 PUT YOUR API KEYS HERE
+# ============================================================
+GROQ_API_KEY   = st.secrets["GROQ_API_KEY"]
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+
+# Models (free-tier friendly defaults)
+WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
+GEMINI_MODEL_CANDIDATES = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+]
+LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
+# ============================================================
 
 # Primary color system: uses semantic variables and respects user's
 # preferred color scheme via media queries. These provide high contrast
