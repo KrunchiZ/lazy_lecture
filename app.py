@@ -247,37 +247,56 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
             return None
 
     def _call_rest_generativelanguage(prompt_text: str) -> str:
-        # Try v1 then v1beta2 endpoints
-        for version in ("v1", "v1beta2"):
-            url = f"https://generativelanguage.googleapis.com/{version}/models/{model_name}:generateText?key={key}"
-            try:
-                import urllib.request
-                import urllib.error
+        # Try v1 then v1beta2 endpoints and try model name with/without 'models/' prefix
+        import urllib.request
+        import urllib.error
+        versions = ("v1", "v1beta2")
+        model_variants = (model_name, f"models/{model_name}") if not model_name.startswith("models/") else (model_name,)
+        headers = {"Content-Type": "application/json"}
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
+        for version in versions:
+            for mname in model_variants:
+                url = f"https://generativelanguage.googleapis.com/{version}/models/{mname}:generateText"
                 body = json.dumps({
                     "prompt": {"text": prompt_text},
                     "temperature": 0.3,
-                    "maxOutputTokens": 12000,
+                    "maxOutputTokens": 1200,
                 }).encode("utf-8")
-                req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=60) as resp:
-                    raw = resp.read().decode("utf-8")
-                    if not raw:
-                        continue
+                req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+                try:
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        raw = resp.read().decode("utf-8")
+                except urllib.error.HTTPError as he:
+                    try:
+                        raw = he.read().decode("utf-8")
+                    except Exception:
+                        raw = str(he)
+                    # try next variant
+                    continue
+                except Exception:
+                    continue
+
+                if not raw:
+                    continue
+                try:
                     j = json.loads(raw)
-                    # Try common response shapes
-                    if isinstance(j, dict):
-                        if "candidates" in j and j["candidates"]:
-                            cand = j["candidates"][0]
-                            if isinstance(cand, dict) and "content" in cand:
-                                return cand["content"]
-                        if "output" in j and isinstance(j["output"], str):
-                            return j["output"]
-                        # some versions use 'generated_text' or 'text'
-                        for k in ("generated_text", "text", "content"):
-                            if k in j and isinstance(j[k], str):
-                                return j[k]
-            except Exception:
-                continue
+                except Exception:
+                    # can't parse JSON, return raw for debugging
+                    return raw
+                # Try common response shapes
+                if isinstance(j, dict):
+                    if "candidates" in j and j["candidates"]:
+                        cand = j["candidates"][0]
+                        if isinstance(cand, dict) and "content" in cand:
+                            return cand["content"]
+                        if isinstance(cand, str):
+                            return cand
+                    if "output" in j and isinstance(j["output"], str):
+                        return j["output"]
+                    for k in ("generated_text", "text", "content"):
+                        if k in j and isinstance(j[k], str):
+                            return j[k]
         return ""
 
     # First try client library
