@@ -27,9 +27,8 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL_CANDIDATES = [
+    "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
 ]
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 # ============================================================
