@@ -110,6 +110,18 @@ button svg, .stButton>button svg, .stDownloadButton>button svg {
 .center-caption { text-align: center; color: var(--blue-900); display:block; width:100%; margin-top:0.25rem; }
 /* Make links and emphasized text use blue tones */
 a, a:visited { color: var(--blue-700) !important; }
+/* Normalize header / top-bar action buttons to consistent size */
+header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
+.css-1v3fvcr button, .css-1d391kg button {
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 6px 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+header button svg, div[role='toolbar'] button svg { width:16px !important; height:16px !important; }
 </style>
 """
 st.markdown(EXTRA_CSS, unsafe_allow_html=True)
@@ -144,7 +156,7 @@ c1, c2, c3 = st.columns([1, 1, 1])
 with c2:
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=uploaded is None)
-    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB. "
+    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.\n"
                 "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
                 unsafe_allow_html=True)
 
