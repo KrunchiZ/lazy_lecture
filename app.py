@@ -173,6 +173,9 @@ st.markdown(
     "and turn it into clean, structured notes with **Gemini**."
 )
 
+if "generated_result" not in st.session_state:
+    st.session_state.generated_result = None
+
 # Resolve keys (constants above, or env vars as a fallback)
 _groq_key = GROQ_API_KEY if GROQ_API_KEY and not GROQ_API_KEY.startswith("paste-") \
     else os.getenv("GROQ_API_KEY", "")
@@ -190,6 +193,8 @@ uploaded = st.file_uploader(
     type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
     accept_multiple_files=False,
 )
+
+current_result = st.session_state.generated_result
 
 # Center the Generate Notes button and place the free-tier message below it
 c1, c2, c3 = st.columns([1, 1, 1])
@@ -486,15 +491,26 @@ if run and uploaded is not None:
             s.update(label="Summarization failed", state="error")
             st.exception(e); st.stop()
 
+    st.session_state.generated_result = {
+        "filename": uploaded.name,
+        "transcript": transcript,
+        "notes": notes,
+    }
+    current_result = st.session_state.generated_result
+
+if current_result:
+    transcript = current_result["transcript"]
+    notes = current_result["notes"]
+
     st.markdown("---")
     render_notes(notes)
 
     md = notes_to_markdown(notes)
     st.download_button("⬇️ Download notes (Markdown)", md,
-                       file_name=f"{Path(uploaded.name).stem}_notes.md",
+                       file_name=f"{Path(current_result['filename']).stem}_notes.md",
                        mime="text/markdown")
     st.download_button("⬇️ Download transcript (TXT)", transcript,
-                       file_name=f"{Path(uploaded.name).stem}_transcript.txt",
+                       file_name=f"{Path(current_result['filename']).stem}_transcript.txt",
                        mime="text/plain")
 else:
     st.markdown("---")
