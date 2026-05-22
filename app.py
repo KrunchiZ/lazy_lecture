@@ -36,8 +36,8 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL_CANDIDATES = [
-    "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
 ]
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 # Maximum safe upload size for Groq (MB). Can be overridden with env var GROQ_MAX_MB
@@ -461,7 +461,7 @@ def summarize_with_gemini(
         lower = message.lower()
         return any(token in lower for token in ["high demand", "resource exhausted", "temporarily unavailable"])
 
-    max_attempts = 10
+    max_attempts = 5
 
     last_error = None
     raw = None
@@ -485,16 +485,27 @@ def summarize_with_gemini(
                 last_error = f"Gemini API Error {he.code} for {selected_model}: {msg}"
                 if he.code == 404:
                     break
-                if _is_transient_gemini_error(he.code, msg) and attempt < max_attempts - 1:
-                    if status_callback:
-                        status_callback(
-                            f"Gemini is under high demand, retrying… (Attempt {attempt + 1}/{max_attempts})"
-                        )
-                    time.sleep(min(2 ** attempt, 30))
-                    continue
+                # If authorization errors, fail fast — switching models won't help
+                if he.code in {401, 403}:
+                    raise RuntimeError(last_error)
+                # If a transient error, retry until attempts exhausted; when exhausted, break to try next model
+                if _is_transient_gemini_error(he.code, msg):
+                    if attempt < max_attempts - 1:
+                        if status_callback:
+                            status_callback(
+                                f"Gemini is under high demand, retrying… (Attempt {attempt + 1}/{max_attempts})"
+                            )
+                        time.sleep(min(2 ** attempt, 30))
+                        continue
+                    else:
+                        if status_callback:
+                            status_callback(f"Exhausted attempts for {selected_model}, trying next model...")
+                        break
+                # Non-transient HTTP error — raise
                 raise RuntimeError(last_error)
             except Exception as e:
                 last_error = f"Failed to call Gemini API with {selected_model}: {e}"
+                # For non-HTTP exceptions, retry on transient failures; if exhausted, move to next model
                 if attempt < max_attempts - 1:
                     if status_callback:
                         status_callback(
@@ -502,7 +513,10 @@ def summarize_with_gemini(
                         )
                     time.sleep(min(2 ** attempt, 30))
                     continue
-                raise RuntimeError(last_error)
+                else:
+                    if status_callback:
+                        status_callback(f"Exhausted attempts for {selected_model}, trying next model...")
+                    break
         if raw is not None:
             break
 
