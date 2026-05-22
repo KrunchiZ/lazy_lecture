@@ -237,9 +237,46 @@ else:
     uf = st.session_state.uploaded_file
     data = uf['data']
     uploaded = _make_uploaded_wrapper(data, uf['name'])
-    cols = st.columns([8,1])
-    cols[0].markdown(f"**{uf['name']}** — {len(data)/(1024*1024):.1f} MB")
-    if cols[1].button("Remove", key="remove_uploaded"):
+    st.markdown(
+        f"""
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:0.75rem;
+            width:100%;
+            padding:0.75rem 1rem;
+            border:1px solid var(--app-border);
+            border-radius:999px;
+            background:var(--app-surface);
+            color:var(--app-text);
+            box-shadow:0 6px 20px rgba(0,0,0,0.08);
+            overflow:hidden;
+        ">
+            <div style="
+                width:2rem;
+                height:2rem;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                border-radius:999px;
+                background:var(--app-accent);
+                color:var(--app-on-accent);
+                font-weight:700;
+                flex:0 0 auto;
+            ">📄</div>
+            <div style="min-width:0; flex:1 1 auto;">
+                <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {uf['name']}
+                </div>
+                <div style="font-size:0.85rem; color:var(--app-muted);">
+                    {len(data)/(1024*1024):.1f} MB • 1 file selected
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Remove file", key="remove_uploaded", use_container_width=True):
         st.session_state.uploaded_file = None
         _request_rerun()
 
