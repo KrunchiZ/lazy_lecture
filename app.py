@@ -3,6 +3,9 @@ Lecture Notes Generator — Streamlit app
 - Upload a lecture video/audio
 - Transcribe with Groq (Whisper, free-tier)
 - Summarize into structured notes with Google Gemini (free-tier)
+- Monochromatic blue UI
+
+>>> PASTE YOUR API KEYS BELOW <<<
 """
 
 import os
@@ -10,6 +13,12 @@ import json
 import tempfile
 import traceback
 from pathlib import Path
+import subprocess
+import shutil
+try:
+    import imageio_ffmpeg as _imageio_ffmpeg  # optional fallback for environments without system ffmpeg
+except Exception:
+    _imageio_ffmpeg = None
 
 import streamlit as st
 from groq import Groq
@@ -24,10 +33,12 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL_CANDIDATES = [
-    "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
 ]
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
+# Maximum safe upload size for Groq (MB). Can be overridden with env var GROQ_MAX_MB
+GROQ_MAX_MB = int(os.getenv("GROQ_MAX_MB", "25"))
 # ============================================================
 
 # ---------- Page config & theme ----------
@@ -159,14 +170,30 @@ header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
 }
 header button svg, div[role='toolbar'] button svg { width:16px !important; height:16px !important; }
 </style>
+<script>
+    (function(){
+        function hide200MB(){
+            try{
+                document.querySelectorAll('[data-testid="stFileUploader"] *').forEach(function(el){
+                    if(el && el.innerText && el.innerText.includes('200 MB')){
+                        el.style.display = 'none';
+                    }
+                });
+            }catch(e){}
+        }
+        window.addEventListener('load', hide200MB);
+        setTimeout(hide200MB, 500);
+        new MutationObserver(hide200MB).observe(document.body, {childList:true, subtree:true});
+    })();
+</script>
 """
 st.markdown(EXTRA_CSS, unsafe_allow_html=True)
 
 # ---------- Header ----------
 st.markdown("# Lecture Notes Generator")
 st.markdown(
-    "Upload a lecture **video or audio** file. We'll transcribe it"
-    "then turn it into clean, structured notes."
+    "Upload a lecture **video or audio** file. We'll transcribe it with **Groq Whisper** "
+    "and turn it into clean, structured notes with **Gemini**."
 )
 
 if "generated_result" not in st.session_state:
@@ -190,13 +217,53 @@ uploaded = st.file_uploader(
     accept_multiple_files=False,
 )
 
+# If a file is present, check its size against the Groq limit so we don't accidentally
+# use up the user's Groq quota. Use the uploaded.size attribute when available.
+size_mb = None
+if uploaded is not None:
+    try:
+        size_mb = (uploaded.size if hasattr(uploaded, 'size') else len(uploaded.getvalue())) / (1024 * 1024)
+    except Exception:
+        size_mb = None
+
+is_video = False
+ffmpeg_exe = shutil.which('ffmpeg')
+if not ffmpeg_exe and _imageio_ffmpeg is not None:
+    try:
+        ffmpeg_exe = _imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        ffmpeg_exe = None
+ffmpeg_available = ffmpeg_exe is not None
+if uploaded is not None:
+    try:
+        is_video = Path(uploaded.name).suffix.lower() in {'.mp4', '.mov', '.mkv', '.webm', '.avi', '.flv'}
+    except Exception:
+        is_video = False
+
+oversize = size_mb is not None and GROQ_MAX_MB is not None and size_mb > float(GROQ_MAX_MB)
+override = False
+if oversize and not is_video:
+    st.warning(f"Uploaded file is {size_mb:.1f} MB — exceeds Groq safe limit of {GROQ_MAX_MB} MB.")
+    override = st.checkbox("Override and allow uploading large file (use with caution)")
+elif is_video and not ffmpeg_available:
+    st.warning("Uploaded file is a video but ffmpeg is not available to auto-extract audio.")
+    override = st.checkbox("Override and upload the original video (use with caution)")
+
 current_result = st.session_state.generated_result
 
 # Center the Generate Notes button and place the free-tier message below it
 c1, c2, c3 = st.columns([1, 1, 1])
 with c2:
+    # Determine whether Generate should be enabled: videos auto-extract if ffmpeg present,
+    # oversize non-video files require explicit override.
+    if uploaded is None:
+        disabled = True
+    elif is_video:
+        disabled = not (ffmpeg_available or override)
+    else:
+        disabled = oversize and not override
     run = st.button("Generate Notes", use_container_width=True, type="primary",
-                    disabled=uploaded is None)
+                    disabled=disabled)
     st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.<br>"
                 "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
                 unsafe_allow_html=True)
@@ -463,13 +530,56 @@ if run and uploaded is not None:
         st.stop()
 
     file_bytes = uploaded.read()
+    filename = uploaded.name
     size_mb = len(file_bytes) / (1024 * 1024)
-    st.info(f"`{uploaded.name}` — {size_mb:.1f} MB")
+    st.info(f"`{filename}` — {size_mb:.1f} MB")
+
+    # If the file is a video and ffmpeg is available, always extract audio automatically
+    if is_video and ffmpeg_available:
+        st.info("Video detected — extracting audio with ffmpeg…")
+        in_path = None
+        out_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as in_tmp:
+                in_tmp.write(file_bytes)
+                in_path = in_tmp.name
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.m4a') as out_tmp:
+                out_path = out_tmp.name
+            cmd = [ffmpeg_exe, '-y', '-i', in_path, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '64k', out_path]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if res.returncode == 0 and out_path and os.path.exists(out_path):
+                file_bytes = open(out_path, 'rb').read()
+                filename = f"{Path(filename).stem}.m4a"
+                size_mb = len(file_bytes) / (1024 * 1024)
+                st.info(f"Extracted audio: {size_mb:.1f} MB — sending to Groq")
+            else:
+                # Extraction failed
+                if not override:
+                    st.error("Automatic audio extraction failed (ffmpeg error). Enable override to proceed with the original file.")
+                    raise SystemExit
+                else:
+                    st.warning("Automatic extraction failed; proceeding with original file as override requested.")
+        except SystemExit:
+            st.stop()
+        except Exception as e:
+            if not override:
+                st.error(f"Audio extraction failed: {e}. Enable override to proceed.")
+                st.stop()
+            else:
+                st.warning("Audio extraction failed; proceeding with original file as override requested.")
+        finally:
+            try:
+                if in_path and os.path.exists(in_path):
+                    os.unlink(in_path)
+                if out_path and os.path.exists(out_path):
+                    os.unlink(out_path)
+            except Exception:
+                pass
 
     with st.status("Transcribing with Groq Whisper…", expanded=False) as s:
         try:
             transcript = transcribe_with_groq(
-                file_bytes, uploaded.name, _groq_key, WHISPER_MODEL, LANGUAGE_HINT
+                file_bytes, filename, _groq_key, WHISPER_MODEL, LANGUAGE_HINT
             )
             s.update(label="Transcription complete", state="complete")
         except Exception as e:
