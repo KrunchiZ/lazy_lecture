@@ -54,18 +54,33 @@ st.set_page_config(
 NAVY_CSS = """
 <style>
 :root {
-    --app-bg: var(--background-color, #e9f1fb);
-    --app-surface: var(--secondary-background-color, #f8fbff);
-    --app-text: var(--text-color, #0a2a52);
-    --app-heading: var(--text-color, #062345);
-    --app-muted: color-mix(in srgb, var(--text-color, #0a2a52) 68%, var(--background-color, #e9f1fb));
-    --app-border: var(--border-color, #8aa8cf);
+    --app-bg:#e9f1fb;
+    --app-surface:#f8fbff;
+    --app-text:#0a2a52;
+    --app-heading:#062345;
+    --app-muted:#446284;
+    --app-border:#8aa8cf;
     --app-accent:#0b3d73;
     --app-accent-hover:#124d8f;
     --app-warm:#b86a12;
     --app-warm-hover:#98550e;
-    --app-on-accent: var(--background-color, #f8fbff);
+    --app-on-accent:#f8fbff;
     color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --app-bg:#061120;
+        --app-surface:#0b1d33;
+        --app-text:#e8f1fc;
+        --app-heading:#f6f9fe;
+        --app-muted:#9db3cf;
+        --app-border:#35547d;
+        --app-accent:#2a5d99;
+        --app-accent-hover:#3b72b4;
+        --app-warm:#cf7f12;
+        --app-warm-hover:#b86a12;
+        --app-on-accent:#f6f9fe;
+    }
 }
 html, body, [class*="css"], .stApp {
     background: var(--app-bg);
