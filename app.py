@@ -242,12 +242,14 @@ def _make_uploaded_wrapper(data: bytes, name: str):
 
 uploaded = None
 if st.session_state.uploaded_file is None:
-    uploaded_input = st.file_uploader(
-        "Add a lecture recording here",
-        type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
-        accept_multiple_files=False,
-        key="uploader",
-    )
+    c1, c2, c3 = st.columns([0.9, 1.2, 0.9])
+    with c2:
+        uploaded_input = st.file_uploader(
+            "Add a lecture recording here",
+            type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
+            accept_multiple_files=False,
+            key="uploader",
+        )
     if uploaded_input is not None:
         try:
             data = uploaded_input.read()
