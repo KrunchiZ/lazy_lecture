@@ -110,24 +110,6 @@ h1, h2, h3, h4 { color: var(--app-heading) !important; letter-spacing:-0.01em; }
 }
 .stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--app-accent-hover) !important; }
 .stProgress > div > div > div > div { background-color: var(--app-accent-hover); }
-/* Keep loading / rotating icons visually consistent across Streamlit theme changes */
-[data-testid="stStatusWidget"] svg,
-[data-testid="stStatusWidget"] [role="progressbar"],
-[data-testid="stStatusWidget"] div,
-[data-testid="stFileUploader"] svg,
-[data-testid="stFileUploader"] [role="progressbar"],
-[data-testid="stFileUploader"] div[data-testid="stSpinner"],
-.stSpinner,
-.stSpinner svg,
-.stSpinner div {
-    color: var(--app-accent) !important;
-    fill: var(--app-accent) !important;
-    stroke: var(--app-accent) !important;
-    border-top-color: var(--app-accent) !important;
-    border-right-color: var(--app-accent) !important;
-    border-bottom-color: var(--app-accent) !important;
-    border-left-color: var(--app-accent) !important;
-}
 div[data-testid="stFileUploader"] section {
     background: var(--app-surface); border:1px dashed var(--app-border); border-radius:12px;
 }
@@ -142,6 +124,18 @@ div[data-testid="stFileUploader"] section {
 }
 .kpi .v { font-size:1.6rem; font-weight:700; }
 .kpi .l { font-size:0.8rem; opacity:0.9; text-transform:uppercase; letter-spacing:0.08em;}
+mark, .stApp mark, .stApp code mark, .stApp span[data-highlighted-text] {
+    background: rgba(11, 61, 115, 0.16) !important;
+    color: var(--app-text) !important;
+    padding: 0 0.18em !important;
+    border-radius: 0.15rem !important;
+}
+@media (prefers-color-scheme: dark) {
+    mark, .stApp mark, .stApp code mark, .stApp span[data-highlighted-text] {
+        background: rgba(42, 93, 153, 0.34) !important;
+        color: var(--app-text) !important;
+    }
+}
 hr { border-color: var(--app-border); }
 /* Make all corners sharp */
 * { border-radius: 0 !important; }
