@@ -12,6 +12,7 @@ import os
 import json
 import tempfile
 import traceback
+import time
 from pathlib import Path
 import subprocess
 import shutil
@@ -440,6 +441,12 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
     except Exception:
         pass
 
+    def _is_transient_gemini_error(code: int, message: str) -> bool:
+        if code in {429, 500, 502, 503, 504}:
+            return True
+        lower = message.lower()
+        return any(token in lower for token in ["high demand", "resource exhausted", "temporarily unavailable"])
+
     last_error = None
     raw = None
     for selected_model in model_candidates:
@@ -450,17 +457,28 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        try:
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                raw = resp.read().decode("utf-8")
-            break
-        except urllib.error.HTTPError as he:
-            msg = he.read().decode("utf-8")
-            last_error = f"Gemini API Error {he.code} for {selected_model}: {msg}"
-            if he.code != 404:
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    raw = resp.read().decode("utf-8")
+                break
+            except urllib.error.HTTPError as he:
+                msg = he.read().decode("utf-8")
+                last_error = f"Gemini API Error {he.code} for {selected_model}: {msg}"
+                if he.code == 404:
+                    break
+                if _is_transient_gemini_error(he.code, msg) and attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
                 raise RuntimeError(last_error)
-        except Exception as e:
-            last_error = f"Failed to call Gemini API with {selected_model}: {e}"
+            except Exception as e:
+                last_error = f"Failed to call Gemini API with {selected_model}: {e}"
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(last_error)
+        if raw is not None:
+            break
 
     if raw is None:
         raise RuntimeError(last_error or "Failed to call Gemini API")
