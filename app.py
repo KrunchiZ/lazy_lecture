@@ -23,6 +23,8 @@ except Exception:
 import streamlit as st
 from groq import Groq
 import google.genai as genai
+from types import SimpleNamespace
+import io
 
 # ============================================================
 # 🔑 PUT YOUR API KEYS HERE
@@ -170,36 +172,7 @@ header button, div[role='toolbar'] button, [data-testid="stHeader"] button,
 }
 header button svg, div[role='toolbar'] button svg { width:16px !important; height:16px !important; }
 </style>
-<script>
-    (function(){
-        function hideUploaderSizeHints(){
-            try{
-                document.querySelectorAll('[data-testid="stFileUploader"] *').forEach(function(el){
-                    if(!el || !el.innerText) return;
-                    const txt = el.innerText.trim();
-                    if(/\b200\s*MB\b/i.test(txt)){
-                        el.style.display = 'none';
-                        return;
-                    }
-                    if(/\b\d+\s*MB\b/i.test(txt) && /(per file|per upload|max)/i.test(txt)){
-                        el.style.display = 'none';
-                        return;
-                    }
-                });
-                // Fallback: hide any nearby helper text nodes that explicitly mention '200 MB'
-                document.querySelectorAll('[data-testid="stFileUploader"]').forEach(function(u){
-                    u.querySelectorAll('label, span, p, div').forEach(function(el){
-                        if(!el || !el.innerText) return;
-                        if(/\b200\s*MB\b/i.test(el.innerText)) el.style.display='none';
-                    });
-                });
-            }catch(e){}
-        }
-        window.addEventListener('load', hideUploaderSizeHints);
-        setTimeout(hideUploaderSizeHints, 500);
-        new MutationObserver(hideUploaderSizeHints).observe(document.body, {childList:true, subtree:true});
-    })();
-</script>
+
 """
 st.markdown(EXTRA_CSS, unsafe_allow_html=True)
 
@@ -225,11 +198,41 @@ if not _groq_key or not _gemini_key:
         "(constants `GROQ_API_KEY` and `GEMINI_API_KEY`)."
     )
 
-uploaded = st.file_uploader(
-    "Drop a lecture file here",
-    type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
-    accept_multiple_files=False,
-)
+if 'uploaded_file' not in st.session_state:
+    st.session_state.uploaded_file = None
+
+def _make_uploaded_wrapper(data: bytes, name: str):
+    return SimpleNamespace(**{
+        'read': lambda: data,
+        'getvalue': lambda: data,
+        'name': name,
+        'size': len(data)
+    })
+
+uploaded = None
+if st.session_state.uploaded_file is None:
+    uploaded_input = st.file_uploader(
+        "Drop a lecture file here",
+        type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
+        accept_multiple_files=False,
+        key="uploader",
+    )
+    if uploaded_input is not None:
+        try:
+            data = uploaded_input.read()
+        except Exception:
+            data = uploaded_input.getvalue()
+        st.session_state.uploaded_file = { 'name': uploaded_input.name, 'data': data }
+        uploaded = _make_uploaded_wrapper(data, uploaded_input.name)
+else:
+    uf = st.session_state.uploaded_file
+    data = uf['data']
+    uploaded = _make_uploaded_wrapper(data, uf['name'])
+    cols = st.columns([8,1])
+    cols[0].markdown(f"**{uf['name']}** — {len(data)/(1024*1024):.1f} MB")
+    if cols[1].button("Remove", key="remove_uploaded"):
+        st.session_state.uploaded_file = None
+        st.experimental_rerun()
 
 # If a file is present, check its size against the Groq limit so we don't accidentally
 # use up the user's Groq quota. Use the uploaded.size attribute when available.
