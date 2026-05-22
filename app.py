@@ -172,18 +172,32 @@ header button svg, div[role='toolbar'] button svg { width:16px !important; heigh
 </style>
 <script>
     (function(){
-        function hide200MB(){
+        function hideUploaderSizeHints(){
             try{
                 document.querySelectorAll('[data-testid="stFileUploader"] *').forEach(function(el){
-                    if(el && el.innerText && el.innerText.includes('200 MB')){
+                    if(!el || !el.innerText) return;
+                    const txt = el.innerText.trim();
+                    if(/\b200\s*MB\b/i.test(txt)){
                         el.style.display = 'none';
+                        return;
                     }
+                    if(/\b\d+\s*MB\b/i.test(txt) && /(per file|per upload|max)/i.test(txt)){
+                        el.style.display = 'none';
+                        return;
+                    }
+                });
+                // Fallback: hide any nearby helper text nodes that explicitly mention '200 MB'
+                document.querySelectorAll('[data-testid="stFileUploader"]').forEach(function(u){
+                    u.querySelectorAll('label, span, p, div').forEach(function(el){
+                        if(!el || !el.innerText) return;
+                        if(/\b200\s*MB\b/i.test(el.innerText)) el.style.display='none';
+                    });
                 });
             }catch(e){}
         }
-        window.addEventListener('load', hide200MB);
-        setTimeout(hide200MB, 500);
-        new MutationObserver(hide200MB).observe(document.body, {childList:true, subtree:true});
+        window.addEventListener('load', hideUploaderSizeHints);
+        setTimeout(hideUploaderSizeHints, 500);
+        new MutationObserver(hideUploaderSizeHints).observe(document.body, {childList:true, subtree:true});
     })();
 </script>
 """
