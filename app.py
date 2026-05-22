@@ -302,9 +302,9 @@ Return STRICT JSON with this schema:
         "heading": "section name",
         "bullets": ["point", "point", ...],
         "visual": {
-            "type": "mermaid" | "table" | "none",
-            "content": "mermaid code OR markdown table OR empty"
-        }
+                "type": "table" | "none",
+                "content": "markdown table OR empty"
+            }
      }
   ],
   "key_terms": [{"term":"...", "definition":"..."}],
@@ -319,12 +319,10 @@ Return STRICT JSON with this schema:
 
 Rules:
 - Be faithful to the transcript for the core notes.
-- Use visual elements (mermaid or tables) to make it easy to digest.
-- Generate additional study materials/notes related to the discussed topics.
-    - Keep mermaid diagrams small (<=8 nodes) and syntactically valid.
-    - Prefer simple `graph TD` or `flowchart TD` diagrams.
-    - Use short alphanumeric node IDs, plain text labels, and simple arrows only.
-    - Do not use quotes, HTML, markdown fences, or advanced Mermaid features.
+- Use visual elements (Markdown tables) to make content easy to digest.
+    - Generate additional study materials/notes related to the discussed topics.
+    - Prefer simple, compact tables that fit inside notes.
+    - Do not use HTML or fenced code blocks for table content; output plain Markdown tables.
 - Output JSON only. No prose, no code fences.
 
 TRANSCRIPT:
@@ -410,34 +408,6 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
         except json.JSONDecodeError:
             raise RuntimeError(f"Failed to parse JSON response: {txt[:200]}")
 
-def _looks_like_valid_mermaid(code: str) -> bool:
-    text = code.strip()
-    if not text:
-        return False
-
-    first_line = text.splitlines()[0].strip().lower()
-    if not first_line.startswith(("graph ", "flowchart ", "sequenceDiagram".lower(), "classDiagram".lower(), "stateDiagram".lower())):
-        return False
-
-    bad_tokens = ["```", "<", ">", "syntax error", "mermaid version"]
-    if any(token in text.lower() for token in bad_tokens):
-        return False
-
-    return True
-
-
-def render_mermaid(code: str):
-    html = f"""
-    <div class="mermaid">{code}</div>
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-            mermaid.initialize({{ startOnLoad: true, theme: 'base',
-                themeVariables: {{ primaryColor:'#0e4f8f', primaryTextColor:'#ffffff',
-                                                     lineColor:'#1666b1', fontFamily:'Inter' }}}});
-      mermaid.run();
-    </script>
-    """
-    st.components.v1.html(html, height=380, scrolling=True)
 
 
 def render_notes(notes: dict):
@@ -465,13 +435,10 @@ def render_notes(notes: dict):
             v = s.get("visual") or {}
             vt = v.get("type", "none")
             content = (v.get("content") or "").strip()
-            if vt == "mermaid" and content:
-                          if _looks_like_valid_mermaid(content):
-                              render_mermaid(content)
-                          else:
-                              st.code(content, language="text")
-            elif vt == "table" and content:
+            if vt == "table" and content:
                 st.markdown(content)
+            elif content:
+                st.code(content, language="text")
 
     terms = notes.get("key_terms", [])
     if terms:
@@ -500,13 +467,10 @@ def notes_to_markdown(notes: dict) -> str:
         lines += ["", f"## {s.get('heading','Section')}"]
         lines += [f"- {b}" for b in s.get("bullets", [])]
         v = s.get("visual") or {}
-        if v.get("type") == "mermaid" and v.get("content"):
-                  if _looks_like_valid_mermaid(v["content"]):
-                      lines += ["", "```mermaid", v["content"], "```"]
-                  else:
-                      lines += ["", v["content"]]
-        elif v.get("type") == "table" and v.get("content"):
+        if v.get("type") == "table" and v.get("content"):
             lines += ["", v["content"]]
+        elif v.get("content"):
+            lines += ["", "```", v["content"], "```"]
     if notes.get("key_terms"):
         lines += ["", "## Key Terms"]
         lines += [f"- **{t.get('term','')}** — {t.get('definition','')}"

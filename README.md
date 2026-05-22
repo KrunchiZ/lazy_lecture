@@ -4,7 +4,7 @@ Turn a lecture recording into clean, structured study notes.
 
 - **Speech-to-text:** Groq Whisper (free tier)
 - **Summarization:** Google Gemini (free tier)
-- **Output:** Title, TL;DR, key bullets, sectioned notes with visual aids (Mermaid diagrams / tables), key terms, and self-check questions. Downloadable as Markdown.
+- **Output:** Title, TL;DR, key bullets, sectioned notes with visual aids (Markdown tables), key terms, and self-check questions. Downloadable as Markdown.
 
 ## 1. Run locally
 
@@ -30,4 +30,4 @@ streamlit run app.py
   ffmpeg -i lecture.mp4 -vn -ac 1 -ar 16000 -b:a 64k lecture.m4a
   ```
 - Transcripts beyond ~120k characters are trimmed before summarization. For multi-hour lectures, consider chunking.
-- Mermaid diagrams render in the browser via CDN.
+- Visual tables are rendered as standard Markdown tables.
