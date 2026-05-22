@@ -3,9 +3,6 @@ Lecture Notes Generator — Streamlit app
 - Upload a lecture video/audio
 - Transcribe with Groq (Whisper, free-tier)
 - Summarize into structured notes with Google Gemini (free-tier)
-- Monochromatic blue UI
-
->>> PASTE YOUR API KEYS BELOW <<<
 """
 
 import os
@@ -27,8 +24,8 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 # Models (free-tier friendly defaults)
 WHISPER_MODEL = "whisper-large-v3"   # or "whisper-large-v3"
 GEMINI_MODEL_CANDIDATES = [
-    "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
 ]
 LANGUAGE_HINT = ""                          # e.g. "en", "" to auto-detect
 # ============================================================
@@ -168,8 +165,8 @@ st.markdown(EXTRA_CSS, unsafe_allow_html=True)
 # ---------- Header ----------
 st.markdown("# Lecture Notes Generator")
 st.markdown(
-    "Upload a lecture **video or audio** file. We'll transcribe it with **Groq Whisper** "
-    "and turn it into clean, structured notes with **Gemini**."
+    "Upload a lecture **video or audio** file. We'll transcribe it"
+    "then turn it into clean, structured notes."
 )
 
 if "generated_result" not in st.session_state:
