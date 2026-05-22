@@ -61,8 +61,8 @@ NAVY_CSS = """
     --app-border:#8aa8cf;
     --app-accent:#0b3d73;
     --app-accent-hover:#124d8f;
-    --app-warm:#c86a05;
-    --app-warm-hover:#a95704;
+    --app-warm:#b86a12;
+    --app-warm-hover:#98550e;
     --app-on-accent:#f8fbff;
     color-scheme: light dark;
 }
@@ -76,8 +76,8 @@ NAVY_CSS = """
         --app-border:#35547d;
         --app-accent:#2a5d99;
         --app-accent-hover:#3b72b4;
-        --app-warm:#e58d08;
-        --app-warm-hover:#c86a05;
+        --app-warm:#cf7f12;
+        --app-warm-hover:#b86a12;
         --app-on-accent:#f6f9fe;
     }
 }
