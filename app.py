@@ -231,7 +231,7 @@ def _make_uploaded_wrapper(data: bytes, name: str):
 uploaded = None
 if st.session_state.uploaded_file is None:
     uploaded_input = st.file_uploader(
-        "Drop a lecture file here",
+        "Add a lecture recording here",
         type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
         accept_multiple_files=False,
         key="uploader",
