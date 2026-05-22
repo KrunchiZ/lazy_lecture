@@ -201,6 +201,15 @@ if not _groq_key or not _gemini_key:
 if 'uploaded_file' not in st.session_state:
     st.session_state.uploaded_file = None
 
+def _request_rerun():
+    rerun = getattr(st, "rerun", None)
+    if callable(rerun):
+        rerun()
+    else:
+        legacy_rerun = getattr(st, "experimental_rerun", None)
+        if callable(legacy_rerun):
+            legacy_rerun()
+
 def _make_uploaded_wrapper(data: bytes, name: str):
     return SimpleNamespace(**{
         'read': lambda: data,
@@ -223,7 +232,7 @@ if st.session_state.uploaded_file is None:
         except Exception:
             data = uploaded_input.getvalue()
         st.session_state.uploaded_file = { 'name': uploaded_input.name, 'data': data }
-        uploaded = _make_uploaded_wrapper(data, uploaded_input.name)
+        _request_rerun()
 else:
     uf = st.session_state.uploaded_file
     data = uf['data']
@@ -232,7 +241,7 @@ else:
     cols[0].markdown(f"**{uf['name']}** — {len(data)/(1024*1024):.1f} MB")
     if cols[1].button("Remove", key="remove_uploaded"):
         st.session_state.uploaded_file = None
-        st.experimental_rerun()
+        _request_rerun()
 
 # If a file is present, check its size against the Groq limit so we don't accidentally
 # use up the user's Groq quota. Use the uploaded.size attribute when available.
