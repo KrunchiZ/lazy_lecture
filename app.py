@@ -61,8 +61,8 @@ NAVY_CSS = """
     --app-border:#8aa8cf;
     --app-accent:#0b3d73;
     --app-accent-hover:#124d8f;
-    --app-warm:#d97706;
-    --app-warm-hover:#b45309;
+    --app-warm:#c86a05;
+    --app-warm-hover:#a95704;
     --app-on-accent:#f8fbff;
     color-scheme: light dark;
 }
@@ -76,8 +76,8 @@ NAVY_CSS = """
         --app-border:#35547d;
         --app-accent:#2a5d99;
         --app-accent-hover:#3b72b4;
-        --app-warm:#f59e0b;
-        --app-warm-hover:#d97706;
+        --app-warm:#e58d08;
+        --app-warm-hover:#c86a05;
         --app-on-accent:#f6f9fe;
     }
 }
@@ -325,7 +325,7 @@ elif is_video and not ffmpeg_available:
 current_result = st.session_state.generated_result
 
 # Center the Generate Notes button and place the free-tier message below it
-c1, c2, c3 = st.columns([1, 1, 1])
+c1, c2, c3 = st.columns([0.9, 1.2, 0.9])
 with c2:
     # Determine whether Generate should be enabled: videos auto-extract if ffmpeg present,
     # oversize non-video files require explicit override.
