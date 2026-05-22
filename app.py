@@ -52,37 +52,8 @@ st.set_page_config(
 )
 
 NAVY_CSS = """
-<script>
-(function () {
-    const themeKey = 'stActiveTheme-' + window.location.pathname + '-v2';
-
-    function resolveTheme() {
-        try {
-            const raw = window.localStorage.getItem(themeKey);
-            if (raw) {
-                const selected = JSON.parse(raw);
-                if (selected === 'Light') return 'light';
-                if (selected === 'Dark') return 'dark';
-                if (selected === 'System') {
-                    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                }
-            }
-        } catch (e) {}
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    function applyTheme() {
-        document.documentElement.setAttribute('data-app-theme', resolveTheme());
-    }
-
-    applyTheme();
-    window.addEventListener('storage', applyTheme);
-    setInterval(applyTheme, 500);
-})();
-</script>
 <style>
-:root,
-:root[data-app-theme="dark"] {
+:root {
     --app-bg:#061120;
     --app-surface:#0b1d33;
     --app-text:#e8f1fc;
@@ -95,7 +66,8 @@ NAVY_CSS = """
     --app-warm-hover:#b86a12;
     --app-on-accent:#f6f9fe;
 }
-:root[data-app-theme="light"] {
+@media (prefers-color-scheme: light) {
+    :root {
     --app-bg:#ffffff;
     --app-surface:#f8fbff;
     --app-text:#0a2a52;
@@ -107,14 +79,7 @@ NAVY_CSS = """
     --app-warm:#b86a12;
     --app-warm-hover:#98550e;
     --app-on-accent:#f8fbff;
-}
-:root[data-app-theme="light"] body,
-:root[data-app-theme="light"] .stApp {
-    color-scheme: light;
-}
-:root[data-app-theme="dark"] body,
-:root[data-app-theme="dark"] .stApp {
-    color-scheme: dark;
+    }
 }
 html, body, [class*="css"], .stApp {
     background: var(--app-bg);
@@ -451,7 +416,12 @@ __TRANSCRIPT__
 \"\"\"
 """
 
-def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dict:
+def summarize_with_gemini(
+    transcript: str,
+    api_key: str,
+    model_name: str,
+    status_callback=None,
+) -> dict:
     import urllib.request
     import urllib.error
     
@@ -493,6 +463,8 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
         lower = message.lower()
         return any(token in lower for token in ["high demand", "resource exhausted", "temporarily unavailable"])
 
+    max_attempts = 10
+
     last_error = None
     raw = None
     for selected_model in model_candidates:
@@ -503,7 +475,9 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        for attempt in range(3):
+        for attempt in range(max_attempts):
+            if status_callback:
+                status_callback(f"Summarizing with Gemini… (Attempt {attempt + 1}/{max_attempts})")
             try:
                 with urllib.request.urlopen(req, timeout=90) as resp:
                     raw = resp.read().decode("utf-8")
@@ -513,14 +487,22 @@ def summarize_with_gemini(transcript: str, api_key: str, model_name: str) -> dic
                 last_error = f"Gemini API Error {he.code} for {selected_model}: {msg}"
                 if he.code == 404:
                     break
-                if _is_transient_gemini_error(he.code, msg) and attempt < 2:
-                    time.sleep(2 ** attempt)
+                if _is_transient_gemini_error(he.code, msg) and attempt < max_attempts - 1:
+                    if status_callback:
+                        status_callback(
+                            f"Gemini is under high demand, retrying… (Attempt {attempt + 1}/{max_attempts})"
+                        )
+                    time.sleep(min(2 ** attempt, 30))
                     continue
                 raise RuntimeError(last_error)
             except Exception as e:
                 last_error = f"Failed to call Gemini API with {selected_model}: {e}"
-                if attempt < 2:
-                    time.sleep(2 ** attempt)
+                if attempt < max_attempts - 1:
+                    if status_callback:
+                        status_callback(
+                            f"Gemini is under high demand, retrying… (Attempt {attempt + 1}/{max_attempts})"
+                        )
+                    time.sleep(min(2 ** attempt, 30))
                     continue
                 raise RuntimeError(last_error)
         if raw is not None:
@@ -692,7 +674,12 @@ if run and uploaded is not None:
 
     with st.status("Summarizing with Gemini…", expanded=False) as s:
         try:
-            notes = summarize_with_gemini(transcript, _gemini_key, GEMINI_MODEL_CANDIDATES[0])
+            notes = summarize_with_gemini(
+                transcript,
+                _gemini_key,
+                GEMINI_MODEL_CANDIDATES[0],
+                status_callback=lambda label: s.update(label=label, state="running"),
+            )
             s.update(label="Notes generated", state="complete")
         except Exception as e:
             s.update(label="Summarization failed", state="error")
