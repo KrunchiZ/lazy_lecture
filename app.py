@@ -61,6 +61,8 @@ NAVY_CSS = """
     --app-border:#8aa8cf;
     --app-accent:#0b3d73;
     --app-accent-hover:#124d8f;
+    --app-warm:#d97706;
+    --app-warm-hover:#b45309;
     --app-on-accent:#f8fbff;
     color-scheme: light dark;
 }
@@ -74,6 +76,8 @@ NAVY_CSS = """
         --app-border:#35547d;
         --app-accent:#2a5d99;
         --app-accent-hover:#3b72b4;
+        --app-warm:#f59e0b;
+        --app-warm-hover:#d97706;
         --app-on-accent:#f6f9fe;
     }
 }
@@ -96,6 +100,12 @@ h1, h2, h3, h4 { color: var(--app-heading) !important; letter-spacing:-0.01em; }
     border:0 !important; padding: 0.55rem 1.1rem !important; font-weight:600 !important;
     box-shadow: none !important; background-image: none !important;
     -webkit-appearance: none !important; appearance: none !important; outline: none !important;
+}
+.stButton>button[kind="primary"], button[kind="primary"] {
+    background: var(--app-warm) !important; color: var(--app-on-accent) !important;
+}
+.stButton>button[kind="primary"]:hover, button[kind="primary"]:hover {
+    background: var(--app-warm-hover) !important;
 }
 .stButton>button:hover, .stDownloadButton>button:hover, button:hover { background: var(--app-accent-hover) !important; }
 .stProgress > div > div > div > div { background-color: var(--app-accent-hover); }
@@ -327,8 +337,8 @@ with c2:
         disabled = oversize and not override
     run = st.button("Generate Notes", use_container_width=True, type="primary",
                     disabled=disabled)
-    st.markdown("<div class='center-caption'>Groq free tier limits file size to ~25 MB.<br>"
-                "For larger lectures, extract audio first (e.g. with ffmpeg).</div>",
+    st.markdown("<div class='center-caption'>Groq free tier limits direct uploads to about ~25 MB.<br>"
+                "Videos are auto-converted to audio first, so larger lectures may still work if the extracted audio stays within the limit.</div>",
                 unsafe_allow_html=True)
 
 # ---------- Helpers ----------
