@@ -242,14 +242,12 @@ def _make_uploaded_wrapper(data: bytes, name: str):
 
 uploaded = None
 if st.session_state.uploaded_file is None:
-    c1, c2, c3 = st.columns([0.9, 1.2, 0.9])
-    with c2:
-        uploaded_input = st.file_uploader(
-            "Add a lecture recording here",
-            type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
-            accept_multiple_files=False,
-            key="uploader",
-        )
+    uploaded_input = st.file_uploader(
+        "Add a lecture recording here",
+        type=["mp3", "wav", "m4a", "mp4", "mov", "mkv", "webm", "ogg", "flac"],
+        accept_multiple_files=False,
+        key="uploader",
+    )
     if uploaded_input is not None:
         try:
             data = uploaded_input.read()
@@ -338,22 +336,20 @@ elif is_video and not ffmpeg_available:
 
 current_result = st.session_state.generated_result
 
-# Center the Generate Notes button and place the free-tier message below it
-c1, c2, c3 = st.columns([0.9, 1.2, 0.9])
-with c2:
-    # Determine whether Generate should be enabled: videos auto-extract if ffmpeg present,
-    # oversize non-video files require explicit override.
-    if uploaded is None:
-        disabled = True
-    elif is_video:
-        disabled = not (ffmpeg_available or override)
-    else:
-        disabled = oversize and not override
-    run = st.button("Generate Notes", use_container_width=True, type="primary",
-                    disabled=disabled)
-    st.markdown("<div class='center-caption'>Groq free tier limits direct uploads to about ~25 MB.<br>"
-                "Videos are auto-converted to audio first, so larger lectures may still work if the extracted audio stays within the limit.</div>",
-                unsafe_allow_html=True)
+# Left-align the Generate Notes button and the free-tier message
+# Determine whether Generate should be enabled: videos auto-extract if ffmpeg present,
+# oversize non-video files require explicit override.
+if uploaded is None:
+    disabled = True
+elif is_video:
+    disabled = not (ffmpeg_available or override)
+else:
+    disabled = oversize and not override
+run = st.button("Generate Notes", use_container_width=False, type="primary",
+                disabled=disabled)
+st.markdown("<div style='text-align:left; color:var(--app-muted); margin-top:0.25rem;'>Groq free tier limits direct uploads to about ~25 MB.<br>"
+            "Videos are auto-converted to audio first, so larger lectures may still work if the extracted audio stays within the limit.</div>",
+            unsafe_allow_html=True)
 
 # ---------- Helpers ----------
 def transcribe_with_groq(file_bytes: bytes, filename: str, api_key: str,
